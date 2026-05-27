@@ -75,7 +75,9 @@ bot.action(/vote_(.+)/, async (ctx) => {
     // DONATE URL
     //
     const donateUrl =
-      `https://send.monobank.ua/jar/3NysFcAawr?text=${district}`;
+  `https://send.monobank.ua/jar/3NysFcAawr?text=${encodeURIComponent(
+    districtData.name
+  )}`;
 
     await ctx.reply(
       `🏆 Ви голосуєте за:\n\n` +
