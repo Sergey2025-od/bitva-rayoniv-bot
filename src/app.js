@@ -184,7 +184,7 @@ bot.on("message", async (ctx) => {
       `\n\n👇 Голосуйте через бота`;
 
     text +=
-      `\n@bitva_rayoniv_bot`;
+  `\nhttps://t.me/bitva_rayoniv_bot?start=vote`;
 
     //
     // SEND POST
