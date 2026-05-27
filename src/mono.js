@@ -12,7 +12,7 @@ async function checkMonobank(bot) {
     // GET TRANSACTIONS
     //
     const response = await axios.get(
-      "https://api.monobank.ua/personal/statement/0/" +
+      "https://api.monobank.ua/personal/statement/fJ__1U98a9s1bIruI1KyrA/" +
       Math.floor(Date.now() / 1000 - 3600),
       {
         headers: {
