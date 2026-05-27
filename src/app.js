@@ -4,6 +4,9 @@ const { Telegraf, Markup } = require("telegraf");
 
 const pool = require("./database/db");
 const app = require("./webhook");
+const {
+  checkMonobank,
+} = require("./mono");
 
 const bot = new Telegraf(
   process.env.BOT_TOKEN
@@ -248,5 +251,10 @@ app.listen(PORT, () => {
 
   console.log(
     "🚀 Webhook server started"
+    setInterval(() => {
+
+  checkMonobank(bot);
+
+}, 15000);
   );
 });
