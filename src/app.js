@@ -193,7 +193,7 @@ bot.on("message", async (ctx) => {
       await bot.telegram.sendPhoto(
         process.env.CHANNEL_ID,
         {
-          source: "assets/Vote.png",
+          source: "../assets/Vote.png",
         },
         {
           caption: text,
