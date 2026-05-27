@@ -29,12 +29,16 @@ async function checkMonobank(bot) {
     // DEBUG
     //
     console.log(
-      JSON.stringify(
-        transactions,
-        null,
-        2
-      )
-    );
+  "🔥 MONO TRANSACTIONS:"
+);
+
+console.log(
+  JSON.stringify(
+    transactions.slice(0, 3),
+    null,
+    2
+  )
+);
 
     //
     // LOOP TRANSACTIONS
