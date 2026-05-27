@@ -12,7 +12,9 @@ app.post("/mono-webhook", async (req, res) => {
   try {
 
     console.log("🔥 MONO WEBHOOK:");
-    console.log(req.body);
+    console.log(
+  JSON.stringify(req.body, null, 2)
+);
 
     const statementItem = req.body?.data?.statementItem;
 
