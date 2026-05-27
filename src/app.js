@@ -253,12 +253,23 @@ app.listen(PORT, () => {
 
   console.log(
     "🚀 Webhook server started"
-    );
-  });
-    setInterval(() => {
+  );
+
+});
+
+//
+// MONO POLLING
+//
+console.log(
+  "🔥 MONO POLLING ENABLED"
+);
+
+setInterval(() => {
+
+  console.log(
+    "🔄 CHECKING MONO"
+  );
 
   checkMonobank(bot);
 
 }, 15000);
-  );
-});
