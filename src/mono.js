@@ -5,7 +5,6 @@ let districtCode = null;
 
 if (
   text.includes("черем") ||
-  text.includes("черемушки") ||
   text.includes("черьому")
 ) {
   districtCode = "cheremushki";
@@ -24,8 +23,8 @@ if (
 }
 
 if (
-  text.includes("таир") ||
   text.includes("таір") ||
+  text.includes("таир") ||
   text.includes("лиман") ||
   text.includes("сав")
 ) {
