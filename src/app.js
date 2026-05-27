@@ -118,105 +118,120 @@ bot.command("newvote", async (ctx) => {
 //
 // CREATE POST
 //
-bot.on("text", async (ctx) => {
+bot.on("message", async (ctx) => {
 
-  const state =
-    userStates[ctx.from.id];
+  try {
 
-  if (!state?.creatingVote) {
-    return;
-  }
+    if (!ctx.message.text) {
+      return;
+    }
 
-  const title =
-    ctx.message.text;
+    const state =
+      userStates[ctx.from.id];
 
-  //
-  // CLOSE OLD POLLS
-  //
-  await pool.query(`
-    UPDATE polls
-    SET is_active = false
-  `);
+    if (!state?.creatingVote) {
+      return;
+    }
 
-  //
-  // RESET VOTES
-  //
-  await pool.query(`
-    DELETE FROM votes
-  `);
+    const title =
+      ctx.message.text;
 
-  //
-  // GET DISTRICTS
-  //
-  const districtsResult =
+    //
+    // CLOSE OLD POLLS
+    //
     await pool.query(`
-      SELECT *
-      FROM districts
-      WHERE active = true
-      ORDER BY id
+      UPDATE polls
+      SET is_active = false
     `);
 
-  //
-  // BUILD TEXT
-  //
-  let text =
-    `🏆 ${title}\n\n`;
+    //
+    // RESET VOTES
+    //
+    await pool.query(`
+      DELETE FROM votes
+    `);
 
-  districtsResult.rows.forEach(
-    (district) => {
+    //
+    // GET DISTRICTS
+    //
+    const districtsResult =
+      await pool.query(`
+        SELECT *
+        FROM districts
+        WHERE active = true
+        ORDER BY id
+      `);
 
-      text +=
-        `${district.emoji} ` +
-        `${district.name} — 0\n`;
-    }
-  );
+    //
+    // BUILD TEXT
+    //
+    let text =
+      `🏆 ${title}\n\n`;
 
-  text +=
-    `\n💸 1 грн = 1 голос`;
+    districtsResult.rows.forEach(
+      (district) => {
 
-  text +=
-    `\n\n👇 Голосуйте через бота`;
-
-  text +=
-    `\n@bitva_rayoniv_bot`;
-
-  //
-  // SEND POST
-  //
-  const message =
-    await bot.telegram.sendPhoto(
-      process.env.CHANNEL_ID,
-      {
-        source: "assets/Vote.png",
-      },
-      {
-        caption: text,
+        text +=
+          `${district.emoji} ` +
+          `${district.name} — 0\n`;
       }
     );
 
-  //
-  // SAVE POLL
-  //
-  await pool.query(
-    `
-    INSERT INTO polls (
-      title,
-      message_id,
-      is_active
-    )
-    VALUES ($1, $2, true)
-    `,
-    [
-      title,
-      message.message_id.toString(),
-    ]
-  );
+    text +=
+      `\n💸 1 грн = 1 голос`;
 
-  await ctx.reply(
-    "✅ Голосування створено."
-  );
+    text +=
+      `\n\n👇 Голосуйте через бота`;
 
-  delete userStates[ctx.from.id];
+    text +=
+      `\n@bitva_rayoniv_bot`;
+
+    //
+    // SEND POST
+    //
+    const message =
+      await bot.telegram.sendPhoto(
+        process.env.CHANNEL_ID,
+        {
+          source: "assets/Vote.png",
+        },
+        {
+          caption: text,
+        }
+      );
+
+    //
+    // SAVE POLL
+    //
+    await pool.query(
+      `
+      INSERT INTO polls (
+        title,
+        message_id,
+        is_active
+      )
+      VALUES ($1, $2, true)
+      `,
+      [
+        title,
+        message.message_id.toString(),
+      ]
+    );
+
+    await ctx.reply(
+      "✅ Голосування створено."
+    );
+
+    delete userStates[ctx.from.id];
+
+  } catch (error) {
+
+    console.log(error);
+
+    await ctx.reply(
+      "❌ Помилка створення голосування."
+    );
+  }
 });
 
 //
