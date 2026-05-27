@@ -15,8 +15,16 @@ const bot = new Telegraf(
 
 const ADMIN_ID =
   process.env.ADMIN_ID;
-
+const {
+  registerAdminPanel,
+} = require(
+  "./admin/panel"
+);
 const userStates = {};
+registerAdminPanel(
+  bot,
+  ADMIN_ID
+);
 
 //
 // START
