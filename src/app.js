@@ -272,4 +272,4 @@ setInterval(() => {
 
   checkMonobank(bot);
 
-}, 15000);
+}, 35000);
