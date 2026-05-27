@@ -232,7 +232,9 @@ bot.on("message", async (ctx) => {
 //
 // LAUNCH
 //
-bot.launch();
+bot.launch({
+  dropPendingUpdates: true,
+});
 
 console.log("🔥 Bot started");
 
