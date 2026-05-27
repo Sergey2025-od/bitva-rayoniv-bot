@@ -185,11 +185,7 @@ bot.on("message", async (ctx) => {
     text +=
       `\n💸 1 грн = 1 голос`;
 
-    text +=
-      `\n\n👇 Голосуйте через бота`;
-
-    text +=
-  `\nhttps://t.me/bitva_rayoniv_bot?start=vote`;
+    
 
     //
     // SEND POST
@@ -197,7 +193,22 @@ bot.on("message", async (ctx) => {
     const message =
   await bot.telegram.sendMessage(
     process.env.CHANNEL_ID,
-    text
+    text,
+    {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text:
+                "🗳 ПРОГОЛОСУВАТИ",
+
+              url:
+                "https://t.me/bitva_rayoniv_bot?start=vote"
+            }
+          ]
+        ]
+      }
+    }
   );
 
     //
