@@ -190,15 +190,10 @@ bot.on("message", async (ctx) => {
     // SEND POST
     //
     const message =
-      await bot.telegram.sendPhoto(
-        process.env.CHANNEL_ID,
-        {
-          source: "../assets/Vote.png",
-        },
-        {
-          caption: text,
-        }
-      );
+  await bot.telegram.sendMessage(
+    process.env.CHANNEL_ID,
+    text
+  );
 
     //
     // SAVE POLL
