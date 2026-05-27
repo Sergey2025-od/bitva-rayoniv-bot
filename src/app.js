@@ -253,6 +253,7 @@ app.listen(PORT, () => {
 
   console.log(
     "🚀 Webhook server started"
+    );
     setInterval(() => {
 
   checkMonobank(bot);
