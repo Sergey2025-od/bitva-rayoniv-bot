@@ -125,8 +125,8 @@ bot.action(
           0,
           Math.floor(
             (
-              Number(poll.end_time) -
-              Date.now()
+              new Date(poll.end_time) -
+              new Date()
             ) / 60000
           )
         );
@@ -179,6 +179,69 @@ bot.action(
         SET is_active = false
         WHERE id = ${poll.id}
       `);
+
+      //
+      // TOTALS
+      //
+      const totalsResult =
+        await pool.query(`
+          SELECT
+            district,
+            SUM(amount) as total
+          FROM votes
+          WHERE status = 'approved'
+          GROUP BY district
+          ORDER BY total DESC
+        `);
+
+      const districtsResult =
+        await pool.query(`
+          SELECT *
+          FROM districts
+        `);
+
+      const map = {};
+
+      districtsResult.rows.forEach(
+        (d) => {
+
+          map[d.code] = d;
+        }
+      );
+
+      const top =
+        totalsResult.rows;
+
+      let resultText =
+        `🏁 Голосування завершено\n\n`;
+
+      if (top[0]) {
+
+        resultText +=
+          `🥇 ${map[top[0].district]?.emoji || ""} ` +
+          `${map[top[0].district]?.name || top[0].district} — ${top[0].total}\n`;
+      }
+
+      if (top[1]) {
+
+        resultText +=
+          `🥈 ${map[top[1].district]?.emoji || ""} ` +
+          `${map[top[1].district]?.name || top[1].district} — ${top[1].total}\n`;
+      }
+
+      if (top[2]) {
+
+        resultText +=
+          `🥉 ${map[top[2].district]?.emoji || ""} ` +
+          `${map[top[2].district]?.name || top[2].district} — ${top[2].total}\n`;
+      }
+
+      await bot.telegram.editMessageText(
+        process.env.CHANNEL_ID,
+        Number(poll.message_id),
+        null,
+        resultText
+      );
 
       await ctx.reply(
         "🏁 Голосування завершено"
@@ -561,8 +624,22 @@ async function updateLeaderboard() {
       `${districtRow.name} — ${total}\n`;
   }
 
+  const leftMinutes =
+    Math.max(
+      0,
+      Math.floor(
+        (
+          new Date(poll.end_time) -
+          new Date()
+        ) / 60000
+      )
+    );
+
   leaderboard +=
-    `\n💸 1 грн = 1 голос`;
+    `\n\n⏱ Залишилось: ${leftMinutes} хв`;
+
+  leaderboard +=
+    `\n\n💸 1 грн = 1 голос`;
 
   await bot.telegram.editMessageText(
     process.env.CHANNEL_ID,
@@ -586,6 +663,22 @@ async function updateLeaderboard() {
     }
   );
 }
+
+//
+// LIVE COUNTDOWN
+//
+setInterval(async () => {
+
+  try {
+
+    await updateLeaderboard();
+
+  } catch (error) {
+
+    console.log(error);
+  }
+
+}, 60000);
 
 //
 // MANUAL AMOUNT
@@ -669,9 +762,6 @@ bot.on("message", async (ctx) => {
       return;
     }
 
-    //
-    // TITLE STEP
-    //
     if (
       state.step === "title"
     ) {
@@ -687,9 +777,6 @@ bot.on("message", async (ctx) => {
       );
     }
 
-    //
-    // MINUTES STEP
-    //
     if (
       state.step === "minutes"
     ) {
@@ -721,14 +808,14 @@ bot.on("message", async (ctx) => {
       state.title;
 
     const endTime =
-  new Date(
-    Date.now() +
-    (
-      state.minutes *
-      60 *
-      1000
-    )
-  );
+      new Date(
+        Date.now() +
+        (
+          state.minutes *
+          60 *
+          1000
+        )
+      );
 
     await pool.query(`
       UPDATE polls
@@ -760,7 +847,10 @@ bot.on("message", async (ctx) => {
     );
 
     text +=
-      `\n💸 1 грн = 1 голос`;
+      `\n\n⏱ Залишилось: ${state.minutes} хв`;
+
+    text +=
+      `\n\n💸 1 грн = 1 голос`;
 
     const message =
       await bot.telegram.sendMessage(
@@ -812,9 +902,9 @@ bot.on("message", async (ctx) => {
 
     console.log(error);
 
-await ctx.reply(
-  `❌ Помилка:\n${error.message}`
-);
+    await ctx.reply(
+      `❌ Помилка:\n${error.message}`
+    );
   }
 });
 
@@ -842,8 +932,8 @@ setInterval(async () => {
     }
 
     if (
-      Date.now() <
-      Number(poll.end_time)
+      new Date() <
+      new Date(poll.end_time)
     ) {
       return;
     }
@@ -860,7 +950,7 @@ setInterval(async () => {
           district,
           SUM(amount) as total
         FROM votes
-       WHERE status = 'approved'
+        WHERE status = 'approved'
         GROUP BY district
         ORDER BY total DESC
       `);
