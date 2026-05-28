@@ -150,10 +150,14 @@ module.exports = (
               process.env.CHANNEL_ID,
               {
 
-source: path.join(
-  process.cwd(),
-  "assets/Vote.jpg"
-)
+
+photo:
+  {
+    source:
+      "./assets/Vote.jpg"
+  }
+
+
 
 
 
