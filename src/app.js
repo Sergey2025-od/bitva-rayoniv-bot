@@ -594,7 +594,7 @@ bot.on("text", async (ctx, next) => {
     if (
   !state?.addingVotes
 ) {
-  return;
+  return next();
 }
 
     const amount =
@@ -635,6 +635,8 @@ bot.on("text", async (ctx, next) => {
     await ctx.reply(
       "✅ Голоси додано"
     );
+	
+	return;
 
   } catch (error) {
 
