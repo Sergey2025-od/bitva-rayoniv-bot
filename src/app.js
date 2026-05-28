@@ -42,8 +42,9 @@ bot.action(
     }
 
     userStates[ctx.from.id] = {
-      creatingVote: true,
-    };
+  creatingVote: true,
+  step: "title",
+};
 
     await ctx.reply(
       "📝 Введіть назву голосування"
