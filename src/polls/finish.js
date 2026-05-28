@@ -12,6 +12,9 @@ async (ctx) => {
 
   try {
 
+    //
+    // ACTIVE POLL
+    //
     const pollResult =
       await pool.query(`
         SELECT *
@@ -32,7 +35,7 @@ async (ctx) => {
     }
 
     //
-    // CLOSE
+    // CLOSE POLL
     //
     await pool.query(`
       UPDATE polls
@@ -47,7 +50,10 @@ async (ctx) => {
       await pool.query(`
         SELECT
           district,
-          SUM(amount) as total
+          COALESCE(
+            SUM(amount),
+            0
+          ) as total
         FROM votes
         WHERE status = 'approved'
         GROUP BY district
@@ -68,14 +74,16 @@ async (ctx) => {
     const map = {};
 
     districtsResult.rows.forEach(
-      (d) => {
+      (district) => {
 
-        map[d.code] = d;
+        map[
+          district.code
+        ] = district;
       }
     );
 
     //
-    // MAIN TEXT
+    // MAIN POST
     //
     let text =
       `🏆 ${poll.title}\n\n`;
@@ -102,15 +110,20 @@ async (ctx) => {
     );
 
     //
-    // FINAL
+    // FINISH
     //
     text +=
-      `\n\n🏁 ГОЛОСУВАННЯ ЗАВЕРШЕНО`;
+      `\n\n🏁 Голосування завершено`;
+
+    text +=
+      `\n\n📊 Фінальні результати:\n`;
 
     //
     // TOP 1
     //
-    if (totalsResult.rows[0]) {
+    if (
+      totalsResult.rows[0]
+    ) {
 
       const winner =
         map[
@@ -119,18 +132,20 @@ async (ctx) => {
         ];
 
       text +=
-        `\n\n🥇 Переможець\n` +
+        `\n🥇 Переможець\n` +
 
         `${winner.emoji} ` +
         `${winner.name} — ` +
 
-        `${totalsResult.rows[0].total} голосів`;
+        `${totalsResult.rows[0].total} голосів\n`;
     }
 
     //
     // TOP 2
     //
-    if (totalsResult.rows[1]) {
+    if (
+      totalsResult.rows[1]
+    ) {
 
       const second =
         map[
@@ -139,18 +154,20 @@ async (ctx) => {
         ];
 
       text +=
-        `\n\n🥈 2 місце\n` +
+        `\n🥈 2 місце\n` +
 
         `${second.emoji} ` +
         `${second.name} — ` +
 
-        `${totalsResult.rows[1].total} голосів`;
+        `${totalsResult.rows[1].total} голосів\n`;
     }
 
     //
     // TOP 3
     //
-    if (totalsResult.rows[2]) {
+    if (
+      totalsResult.rows[2]
+    ) {
 
       const third =
         map[
@@ -159,20 +176,30 @@ async (ctx) => {
         ];
 
       text +=
-        `\n\n🥉 3 місце\n` +
+        `\n🥉 3 місце\n` +
 
         `${third.emoji} ` +
         `${third.name} — ` +
 
-        `${totalsResult.rows[2].total} голосів`;
+        `${totalsResult.rows[2].total} голосів\n`;
     }
+
+    //
+    // THANKS
+    //
+    text +=
+      `\n❤️ Дякуємо всім, ` +
+
+      `хто підтримував свій район`;
 
     //
     // UPDATE POST
     //
     await bot.telegram.editMessageText(
       process.env.CHANNEL_ID,
-      Number(poll.message_id),
+      Number(
+        poll.message_id
+      ),
       null,
       text,
       {
