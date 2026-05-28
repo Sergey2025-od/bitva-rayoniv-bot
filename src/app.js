@@ -28,6 +28,196 @@ registerAdminPanel(
 );
 
 //
+// ADMIN BUTTONS
+//
+bot.action(
+  "admin_create_poll",
+  async (ctx) => {
+
+    if (
+      ctx.from.id.toString() !==
+      ADMIN_ID
+    ) {
+      return;
+    }
+
+    userStates[ctx.from.id] = {
+      creatingVote: true,
+    };
+
+    await ctx.reply(
+      "📝 Введіть назву голосування"
+    );
+  }
+);
+
+bot.action(
+  "admin_current_poll",
+  async (ctx) => {
+
+    try {
+
+      const pollResult =
+        await pool.query(`
+          SELECT *
+          FROM polls
+          WHERE is_active = true
+          ORDER BY id DESC
+          LIMIT 1
+        `);
+
+      const poll =
+        pollResult.rows[0];
+
+      if (!poll) {
+
+        return ctx.reply(
+          "❌ Немає активного голосування"
+        );
+      }
+
+      const totalsResult =
+        await pool.query(`
+          SELECT
+            district,
+            SUM(amount) as total
+          FROM votes
+          WHERE status = 'approved'
+          GROUP BY district
+        `);
+
+      const districtsResult =
+        await pool.query(`
+          SELECT *
+          FROM districts
+          WHERE active = true
+          ORDER BY id
+        `);
+
+      let text =
+        `🏆 ${poll.title}\n\n`;
+
+      for (
+        const district
+        of districtsResult.rows
+      ) {
+
+        const totalRow =
+          totalsResult.rows.find(
+            (r) =>
+              r.district ===
+              district.code
+          );
+
+        const total =
+          totalRow
+            ? totalRow.total
+            : 0;
+
+        text +=
+          `${district.emoji} ` +
+          `${district.name} — ${total}\n`;
+      }
+
+      await ctx.reply(text);
+
+    } catch (error) {
+
+      console.log(error);
+    }
+  }
+);
+
+bot.action(
+  "admin_add_votes",
+  async (ctx) => {
+
+    await ctx.reply(
+      "➕ Використовуйте:\n/addvote район сума"
+    );
+  }
+);
+
+bot.action(
+  "admin_finish_poll",
+  async (ctx) => {
+
+    try {
+
+      const pollResult =
+        await pool.query(`
+          SELECT *
+          FROM polls
+          WHERE is_active = true
+          ORDER BY id DESC
+          LIMIT 1
+        `);
+
+      const poll =
+        pollResult.rows[0];
+
+      if (!poll) {
+
+        return ctx.reply(
+          "❌ Немає активного голосування"
+        );
+      }
+
+      await pool.query(`
+        UPDATE polls
+        SET is_active = false
+        WHERE id = ${poll.id}
+      `);
+
+      await ctx.reply(
+        "🏁 Голосування завершено"
+      );
+
+    } catch (error) {
+
+      console.log(error);
+    }
+  }
+);
+
+bot.action(
+  "admin_stats",
+  async (ctx) => {
+
+    try {
+
+      const votesResult =
+        await pool.query(`
+          SELECT
+            COUNT(*) as votes,
+            COALESCE(
+              SUM(amount),
+              0
+            ) as amount
+          FROM votes
+          WHERE status = 'approved'
+        `);
+
+      await ctx.reply(
+        `📈 Статистика\n\n` +
+
+        `🗳 Голосів: ` +
+
+        `${votesResult.rows[0].votes}\n\n` +
+
+        `💸 Донатів: ` +
+
+        `${votesResult.rows[0].amount} грн`
+      );
+
+    } catch (error) {
+
+      console.log(error);
+    }
+  }
+);
+
+//
 // START
 //
 bot.start(async (ctx) => {
