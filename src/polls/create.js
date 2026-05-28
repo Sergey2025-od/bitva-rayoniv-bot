@@ -152,8 +152,10 @@ module.exports = (
 
 source: path.join(
   process.cwd(),
-  "src/assets/Vote.jpg"
+  "assets/Vote.jpg"
 )
+
+
 
 
               },
