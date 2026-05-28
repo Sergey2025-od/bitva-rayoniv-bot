@@ -1,4 +1,3 @@
-```javascript
 const { Markup } =
   require("telegraf");
 
@@ -156,4 +155,3 @@ module.exports = (
   );
 
 };
-```
