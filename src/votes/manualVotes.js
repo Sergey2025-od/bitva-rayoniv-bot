@@ -1,120 +1,183 @@
 const pool =
-  require("../database/db");
+require("../database/db");
 
 const {
-  updateLeaderboard,
+updateLeaderboard,
 } = require(
-  "../polls/leaderboard"
+"../polls/leaderboard"
 );
 
+const { Markup } =
+require("telegraf");
+
 module.exports = (
-  bot,
-  userStates
+bot,
+userStates
 ) => {
 
-  //
-  // OPEN MANUAL VOTE
-  //
-  bot.action(
-    /manual_vote_(.+)/,
-    async (ctx) => {
+//
+// ADMIN ADD VOTES
+//
+bot.action(
+"admin_add_votes",
+async (ctx) => {
 
-      const district =
-        ctx.match[1];
 
+  try {
+
+    const districtsResult =
+      await pool.query(`
+        SELECT *
+        FROM districts
+        WHERE active = true
+        ORDER BY id
+      `);
+
+    const buttons =
+      districtsResult.rows.map(
+        (district) => [
+
+          Markup.button.callback(
+            `${district.emoji} ${district.name}`,
+            `manual_vote_${district.code}`
+          ),
+
+        ]
+      );
+
+    await ctx.reply(
+      "🏆 Оберіть район",
+
+      Markup.inlineKeyboard(
+        buttons
+      )
+    );
+
+  } catch (error) {
+
+    console.log(error);
+  }
+}
+
+
+);
+
+//
+// SELECT DISTRICT
+//
+bot.action(
+/manual_vote_(.+)/,
+async (ctx) => {
+
+
+  try {
+
+    const district =
+      ctx.match[1];
+
+    userStates[
+      ctx.from.id
+    ] = {
+      addingVotes: true,
+      district,
+    };
+
+    await ctx.reply(
+      "💸 Введіть кількість голосів"
+    );
+
+  } catch (error) {
+
+    console.log(error);
+  }
+}
+
+
+);
+
+//
+// SAVE VOTES
+//
+bot.hears(
+/^\d+$/,
+async (ctx, next) => {
+
+
+  try {
+
+    const state =
       userStates[
         ctx.from.id
-      ] = {
-        addingVotes: true,
-        district,
-      };
+      ];
 
-      await ctx.reply(
-        "💸 Введіть кількість голосів"
+    if (
+      !state?.addingVotes
+    ) {
+      return next();
+    }
+
+    const amount =
+      Number(
+        ctx.message.text
+      );
+
+    if (!amount) {
+
+      return ctx.reply(
+        "❌ Введіть число"
       );
     }
-  );
 
-  //
-  // SAVE MANUAL VOTE
-  //
-  bot.hears(
-    /^\d+$/,
-    async (ctx, next) => {
+    //
+    // SAVE
+    //
+    await pool.query(
+      `
+      INSERT INTO votes (
+        user_id,
+        username,
+        district,
+        amount,
+        status
+      )
+      VALUES (
+        $1,
+        $2,
+        $3,
+        $4,
+        'approved'
+      )
+      `,
+      [
+        "admin",
+        "admin",
+        state.district,
+        amount,
+      ]
+    );
 
-      try {
+    //
+    // UPDATE
+    //
+    await updateLeaderboard(
+      bot
+    );
 
-        const state =
-          userStates[
-            ctx.from.id
-          ];
+    delete userStates[
+      ctx.from.id
+    ];
 
-        if (
-          !state?.addingVotes
-        ) {
-          return next();
-        }
+    await ctx.reply(
+      "✅ Голоси додано"
+    );
 
-        const amount =
-          Number(
-            ctx.message.text
-          );
+  } catch (error) {
 
-        if (!amount) {
+    console.log(error);
+  }
+}
 
-          return ctx.reply(
-            "❌ Введіть число"
-          );
-        }
 
-        //
-        // SAVE
-        //
-        await pool.query(
-          `
-          INSERT INTO votes (
-            user_id,
-            username,
-            district,
-            amount,
-            status
-          )
-          VALUES (
-            $1,
-            $2,
-            $3,
-            $4,
-            'approved'
-          )
-          `,
-          [
-            "admin",
-            "admin",
-            state.district,
-            amount,
-          ]
-        );
-
-        //
-        // UPDATE POST
-        //
-        await updateLeaderboard(
-          bot
-        );
-
-        delete userStates[
-          ctx.from.id
-        ];
-
-        await ctx.reply(
-          "✅ Голоси додано"
-        );
-
-      } catch (error) {
-
-        console.log(error);
-      }
-    }
-  );
+);
 
 };
