@@ -810,9 +810,9 @@ bot.on("message", async (ctx) => {
 
     console.log(error);
 
-    await ctx.reply(
-      "❌ Помилка створення голосування."
-    );
+await ctx.reply(
+  `❌ Помилка:\n${error.message}`
+);
   }
 });
 
