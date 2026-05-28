@@ -292,38 +292,56 @@ bot.action(/vote_(.+)/, async (ctx) => {
     };
 
     //
-    // DONATE URL
+    // MESSAGE
     //
-    const donateUrl =
-      `https://send.monobank.ua/jar/3NysFcAawr`;
-
     await ctx.reply(
-      `🏆 Ви голосуєте за:\n\n` +
+      `🏆 Ви голосуєте за район:\n\n` +
 
-      `${districtData.emoji} ${districtData.name}\n\n` +
-
-      `💸 1 грн = 1 голос\n\n` +
-
-      `⚠️ ВАЖЛИВО\n\n` +
-
-      `У коментарі до донату\n` +
-      `напишіть:\n\n` +
+      `${districtData.emoji} ` +
 
       `${districtData.name}\n\n` +
 
-      `❗ Якщо автоматично\n` +
-      `голос не зарахувався —\n` +
-      `надішліть сюди скрін.\n\n` +
+      `💸 1 грн = 1 голос\n\n` +
 
-      `👇 Натисніть кнопку нижче`,
+      `Оберіть спосіб голосування 👇\n\n` +
+
+      `━━━━━━━━━━\n\n` +
+
+      `💳 Донат + коментар\n\n` +
+
+      `1. Натисніть кнопку донату\n` +
+      `2. Задонатьте будь-яку суму\n` +
+      `3. У коментарі до платежу\n` +
+      `напишіть назву району\n\n` +
+
+      `✅ Голоси зарахуються автоматично\n\n` +
+
+      `━━━━━━━━━━\n\n` +
+
+      `📸 Донат + скрін\n\n` +
+
+      `1. Задонатьте будь-яку суму\n` +
+      `2. Зробіть скрін донату\n` +
+      `3. Надішліть скрін боту\n\n` +
+
+      `✅ Адмін вручну підтвердить голоси`,
 
       Markup.inlineKeyboard([
+
         [
-          Markup.button.url(
-            "💳 Задонатити",
-            donateUrl
+          Markup.button.callback(
+            "💳 Донат + коментар",
+            `vote_comment_${districtData.code}`
           ),
         ],
+
+        [
+          Markup.button.callback(
+            "📸 Донат + скрін",
+            `vote_screenshot_${districtData.code}`
+          ),
+        ],
+
       ])
     );
 
@@ -332,6 +350,132 @@ bot.action(/vote_(.+)/, async (ctx) => {
     console.log(error);
   }
 });
+
+//
+// COMMENT DONATE
+//
+bot.action(
+  /vote_comment_(.+)/,
+  async (ctx) => {
+
+    const district =
+      ctx.match[1];
+
+    const districtResult =
+      await pool.query(
+        `
+        SELECT *
+        FROM districts
+        WHERE code = $1
+        LIMIT 1
+        `,
+        [district]
+      );
+
+    const districtData =
+      districtResult.rows[0];
+
+    const donateUrl =
+      `https://send.monobank.ua/jar/3NysFcAawr`;
+
+    await ctx.reply(
+      `💳 Донат з коментарем\n\n` +
+
+      `🏆 Район:\n` +
+
+      `${districtData.emoji} ` +
+
+      `${districtData.name}\n\n` +
+
+      `⚠️ У коментарі до платежу\n` +
+
+      `обов'язково напишіть:\n\n` +
+
+      `${districtData.name}\n\n` +
+
+      `✅ Тоді голоси\n` +
+
+      `зарахуються автоматично`,
+
+      Markup.inlineKeyboard([
+        [
+          Markup.button.url(
+            "💳 ВІДКРИТИ MONO",
+            donateUrl
+          ),
+        ],
+      ])
+    );
+  }
+);
+
+//
+// SCREENSHOT DONATE
+//
+bot.action(
+  /vote_screenshot_(.+)/,
+  async (ctx) => {
+
+    const district =
+      ctx.match[1];
+
+    const districtResult =
+      await pool.query(
+        `
+        SELECT *
+        FROM districts
+        WHERE code = $1
+        LIMIT 1
+        `,
+        [district]
+      );
+
+    const districtData =
+      districtResult.rows[0];
+
+    userStates[ctx.from.id] = {
+      district:
+        districtData.code,
+
+      districtName:
+        districtData.name,
+
+      districtEmoji:
+        districtData.emoji,
+
+      waitingScreenshot: true,
+    };
+
+    const donateUrl =
+      `https://send.monobank.ua/jar/3NysFcAawr`;
+
+    await ctx.reply(
+      `📸 Донат + скрін\n\n` +
+
+      `🏆 Район:\n` +
+
+      `${districtData.emoji} ` +
+
+      `${districtData.name}\n\n` +
+
+      `1. Задонатьте будь-яку суму\n` +
+      `2. Зробіть скрін\n` +
+      `3. Надішліть скрін сюди\n\n` +
+
+      `⚠️ На скріні повинна бути\n` +
+      `видна сума донату`,
+
+      Markup.inlineKeyboard([
+        [
+          Markup.button.url(
+            "💳 ВІДКРИТИ MONO",
+            donateUrl
+          ),
+        ],
+      ])
+    );
+  }
+);
 
 //
 // NEW VOTE
@@ -664,7 +808,10 @@ bot.on("photo", async (ctx) => {
     const state =
       userStates[ctx.from.id];
 
-    if (!state?.district) {
+    if (
+  !state?.district ||
+  !state?.waitingScreenshot
+) {
 
       return ctx.reply(
         "❌ Спочатку оберіть район."
