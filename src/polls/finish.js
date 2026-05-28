@@ -67,6 +67,7 @@ async (ctx) => {
       await pool.query(`
         SELECT *
         FROM districts
+        ORDER BY id
       `);
 
     const map = {};
@@ -79,40 +80,88 @@ async (ctx) => {
     );
 
     //
-    // RESULT TEXT
+    // KEEP LEADERBOARD
     //
     let resultText =
-      `🏁 Голосування завершено\n\n`;
+      `🏆 ${poll.title}\n\n`;
 
-    resultText +=
-      `📊 Фінальні результати:\n\n`;
+    districtsResult.rows.forEach(
+      (district) => {
 
-    totalsResult.rows.forEach(
-      (row, index) => {
+        const row =
+          totalsResult.rows.find(
+            (r) =>
+              r.district ===
+              district.code
+          );
 
-        const district =
-          map[row.district];
-
-        if (!district) {
-          return;
-        }
-
-        const place =
-          index === 0
-            ? "🥇 Переможець"
-            : index === 1
-            ? "🥈 2 місце"
-            : index === 2
-            ? "🥉 3 місце"
-            : "🏆";
+        const total =
+          row
+            ? row.total
+            : 0;
 
         resultText +=
-          `${place}\n` +
-
           `${district.emoji} ` +
-          `${district.name} — ${row.total} голосів\n\n`;
+          `${district.name} — ${total}\n`;
       }
     );
+
+    //
+    // FINAL
+    //
+    resultText +=
+      `\n\n🏁 ГОЛОСУВАННЯ ЗАВЕРШЕНО\n`;
+
+    if (totalsResult.rows[0]) {
+
+      const d =
+        map[
+          totalsResult.rows[0]
+            .district
+        ];
+
+      resultText +=
+        `\n🥇 Переможець:\n` +
+
+        `${d.emoji} ` +
+        `${d.name} — ` +
+
+        `${totalsResult.rows[0].total} голосів\n`;
+    }
+
+    if (totalsResult.rows[1]) {
+
+      const d =
+        map[
+          totalsResult.rows[1]
+            .district
+        ];
+
+      resultText +=
+        `\n🥈 2 місце:\n` +
+
+        `${d.emoji} ` +
+        `${d.name} — ` +
+
+        `${totalsResult.rows[1].total} голосів\n`;
+    }
+
+    if (totalsResult.rows[2]) {
+
+      const d =
+        map[
+          totalsResult.rows[2]
+            .district
+        ];
+
+      resultText +=
+        `\n🥉 3 місце:\n` +
+
+        `${d.emoji} ` +
+        `${d.name} — ` +
+
+        `${totalsResult.rows[2].total} голосів\n`;
+    }
 
     //
     // UPDATE POST
