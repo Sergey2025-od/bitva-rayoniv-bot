@@ -88,6 +88,78 @@ async (ctx) => {
 );
 
 //
+// DEEP LINK
+//
+bot.command(
+"start",
+async (ctx, next) => {
+
+
+  const text =
+    ctx.message.text;
+
+  if (
+    text !== "/start vote"
+  ) {
+    return next();
+  }
+
+  //
+  // ACTIVE POLL
+  //
+  const pollResult =
+    await pool.query(`
+      SELECT *
+      FROM polls
+      WHERE is_active = true
+      ORDER BY id DESC
+      LIMIT 1
+    `);
+
+  const poll =
+    pollResult.rows[0];
+
+  if (!poll) {
+
+    return ctx.reply(
+      "❌ Зараз немає активного голосування."
+    );
+  }
+
+  //
+  // DISTRICTS
+  //
+  const result =
+    await pool.query(`
+      SELECT *
+      FROM districts
+      WHERE active = true
+      ORDER BY id
+    `);
+
+  const buttons =
+    result.rows.map(
+      (district) => [
+        Markup.button.callback(
+          `${district.emoji} ${district.name}`,
+          `vote_${district.code}`
+        ),
+      ]
+    );
+
+  await ctx.reply(
+    "🏆 Оберіть район для голосування:",
+
+    Markup.inlineKeyboard(
+      buttons
+    )
+  );
+}
+
+
+);
+
+//
 // SELECT DISTRICT
 //
 bot.action(
