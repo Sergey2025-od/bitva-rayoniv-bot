@@ -472,25 +472,35 @@ bot.on("photo", async (ctx) => {
         : ctx.from.first_name;
 
     await bot.telegram.sendPhoto(
-      ADMIN_ID,
-      fileId,
-      {
-        caption:
-          `🆕 Новий скрін донату\n\n` +
+  ADMIN_ID,
+  fileId,
+  {
+    caption:
+      `🆕 Новий скрін донату\n\n` +
 
-          `👤 ${username}\n\n` +
+      `👤 ${username}\n\n` +
 
-          `🏆 Район:\n` +
+      `🏆 Район:\n` +
 
-          `${state.districtEmoji} ` +
+      `${state.districtEmoji} ` +
 
-          `${state.districtName}\n\n` +
+      `${state.districtName}`,
 
-          `Команда:\n` +
+    reply_markup: {
+      inline_keyboard: [
+        [
+          {
+            text:
+              "✅ Додати голоси",
 
-          `/addvote ${state.district} сума`
-      }
-    );
+            callback_data:
+              `manual_vote_${state.district}`
+          }
+        ]
+      ]
+    }
+  }
+);
 
     await ctx.reply(
       "✅ Скрин відправлено адміну."
