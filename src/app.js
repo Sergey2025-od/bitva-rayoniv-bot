@@ -153,7 +153,6 @@ bot.action(
         await pool.query(`
           SELECT *
           FROM polls
-          WHERE is_active = true
           ORDER BY id DESC
           LIMIT 1
         `);
@@ -164,7 +163,14 @@ bot.action(
       if (!poll) {
 
         return ctx.reply(
-          "❌ Немає активного голосування"
+          "❌ Немає голосування"
+        );
+      }
+
+      if (!poll.is_active) {
+
+        return ctx.reply(
+          "⚠️ Голосування вже завершене"
         );
       }
 
@@ -584,7 +590,7 @@ async function updateLeaderboard() {
 //
 // MANUAL AMOUNT
 //
-bot.on("text", async (ctx, next) => {
+bot.hears(/^\d+$/, async (ctx, next) => {
 
   try {
 
@@ -592,20 +598,13 @@ bot.on("text", async (ctx, next) => {
       userStates[ctx.from.id];
 
     if (
-  !state?.addingVotes
-) {
-  return next();
-}
+      !state?.addingVotes
+    ) {
+      return next();
+    }
 
     const amount =
       Number(ctx.message.text);
-
-    if (!amount) {
-
-      return ctx.reply(
-        "❌ Введіть число"
-      );
-    }
 
     await pool.query(
       `
@@ -635,8 +634,8 @@ bot.on("text", async (ctx, next) => {
     await ctx.reply(
       "✅ Голоси додано"
     );
-	
-	return;
+
+    return;
 
   } catch (error) {
 
@@ -712,9 +711,6 @@ bot.on("message", async (ctx) => {
         "create";
     }
 
-    //
-    // NOT READY
-    //
     if (
       state.step !== "create"
     ) {
@@ -862,7 +858,7 @@ setInterval(async () => {
           district,
           SUM(amount) as total
         FROM votes
-        WHERE status = 'approved'
+       WHERE status = 'approved'
         GROUP BY district
         ORDER BY total DESC
       `);
