@@ -531,7 +531,183 @@ bot.command("newvote", async (ctx) => {
     "📝 Введіть назву голосування"
   );
 });
+//
+// MANUAL VOTE
+//
+bot.action(
+  /manual_vote_(.+)/,
+  async (ctx) => {
 
+    const district =
+      ctx.match[1];
+
+    userStates[ctx.from.id] = {
+      addingVotes: true,
+      district,
+    };
+
+    await ctx.reply(
+      "💸 Введіть кількість голосів"
+    );
+  }
+);
+
+//
+// MANUAL AMOUNT
+//
+bot.on("text", async (ctx, next) => {
+
+  try {
+
+    const state =
+      userStates[ctx.from.id];
+
+    if (
+      !state?.addingVotes
+    ) {
+      return next();
+    }
+
+    const amount =
+      Number(ctx.message.text);
+
+    if (!amount) {
+
+      return ctx.reply(
+        "❌ Введіть число"
+      );
+    }
+
+    //
+    // SAVE VOTE
+    //
+    await pool.query(
+      `
+      INSERT INTO votes (
+        user_id,
+        username,
+        district,
+        amount,
+        status
+      )
+      VALUES ($1, $2, $3, $4, 'approved')
+      `,
+      [
+        "admin",
+        "admin",
+        state.district,
+        amount,
+      ]
+    );
+
+    //
+    // ACTIVE POLL
+    //
+    const pollResult =
+      await pool.query(`
+        SELECT *
+        FROM polls
+        WHERE is_active = true
+        ORDER BY id DESC
+        LIMIT 1
+      `);
+
+    const poll =
+      pollResult.rows[0];
+
+    //
+    // TOTALS
+    //
+    const totalsResult =
+      await pool.query(`
+        SELECT
+          district,
+          SUM(amount) as total
+        FROM votes
+        WHERE status = 'approved'
+        GROUP BY district
+      `);
+
+    //
+    // DISTRICTS
+    //
+    const districtsResult =
+      await pool.query(`
+        SELECT *
+        FROM districts
+        WHERE active = true
+        ORDER BY id
+      `);
+
+    //
+    // BUILD TEXT
+    //
+    let leaderboard =
+      `🏆 ${poll.title}\n\n`;
+
+    for (
+      const districtRow
+      of districtsResult.rows
+    ) {
+
+      const totalRow =
+        totalsResult.rows.find(
+          (r) =>
+            r.district ===
+            districtRow.code
+        );
+
+      const total =
+        totalRow
+          ? totalRow.total
+          : 0;
+
+      leaderboard +=
+        `${districtRow.emoji} ` +
+        `${districtRow.name} — ${total}\n`;
+    }
+
+    leaderboard +=
+      `\n💸 1 грн = 1 голос`;
+
+    //
+    // UPDATE POST
+    //
+    await bot.telegram.editMessageText(
+      process.env.CHANNEL_ID,
+      Number(poll.message_id),
+      null,
+      leaderboard,
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text:
+                  "🗳 ПРОГОЛОСУВАТИ",
+
+                url:
+                  "https://t.me/bitva_rayoniv_bot"
+              }
+            ]
+          ]
+        }
+      }
+    );
+
+    delete userStates[
+      ctx.from.id
+    ];
+
+    await ctx.reply(
+      "✅ Голоси додано"
+    );
+
+  } catch (error) {
+
+    console.log(error);
+  }
+});
 //
 // CREATE POST
 //
