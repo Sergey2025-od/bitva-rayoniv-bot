@@ -249,7 +249,7 @@ bot.start(async (ctx) => {
 //
 // VOTE
 //
-bot.action(/vote_(.+)/, async (ctx) => {
+bot.action(/^vote_([^_]+)$/, async (ctx) => {
 
   try {
 
