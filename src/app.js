@@ -735,8 +735,55 @@ bot.on("message", async (ctx) => {
       return;
     }
 
-    const title =
-      ctx.message.text;
+    //
+// TITLE STEP
+//
+if (
+  state.step === "title"
+) {
+
+  state.title =
+    ctx.message.text;
+
+  state.step =
+    "minutes";
+
+  return ctx.reply(
+    "⏱ Введіть час голосування у хвилинах"
+  );
+}
+
+//
+// MINUTES STEP
+//
+if (
+  state.step === "minutes"
+) {
+
+  const minutes =
+    Number(ctx.message.text);
+
+  if (!minutes) {
+
+    return ctx.reply(
+      "❌ Введіть число"
+    );
+  }
+
+  state.minutes =
+    minutes;
+}
+
+const title =
+  state.title;
+
+const endTime =
+  Date.now() +
+  (
+    state.minutes *
+    60 *
+    1000
+  );
 
     await pool.query(`
       UPDATE polls
@@ -794,16 +841,19 @@ bot.on("message", async (ctx) => {
     await pool.query(
       `
       INSERT INTO polls (
-        title,
-        message_id,
-        is_active
+  title,
+  message_id,
+  is_active,
+  end_time
+)
       )
-      VALUES ($1, $2, true)
+      VALUES ($1, $2, true, $3)
       `,
       [
-        title,
-        message.message_id.toString(),
-      ]
+  title,
+  message.message_id.toString(),
+  endTime,
+]
     );
 
     await ctx.reply(
@@ -1016,7 +1066,103 @@ app.listen(PORT, () => {
   );
 
 });
+//
+// AUTO FINISH
+//
+setInterval(async () => {
 
+  try {
+
+    const pollResult =
+      await pool.query(`
+        SELECT *
+        FROM polls
+        WHERE is_active = true
+        ORDER BY id DESC
+        LIMIT 1
+      `);
+
+    const poll =
+      pollResult.rows[0];
+
+    if (!poll) {
+      return;
+    }
+
+    //
+    // NOT ENDED
+    //
+    if (
+      Date.now() <
+      Number(poll.end_time)
+    ) {
+      return;
+    }
+
+    //
+    // FINISH POLL
+    //
+    await pool.query(`
+      UPDATE polls
+      SET is_active = false
+      WHERE id = ${poll.id}
+    `);
+
+    //
+    // TOTALS
+    //
+    const totalsResult =
+      await pool.query(`
+        SELECT
+          district,
+          SUM(amount) as total
+        FROM votes
+        WHERE status = 'approved'
+        GROUP BY district
+        ORDER BY total DESC
+      `);
+
+    const top =
+      totalsResult.rows;
+
+    let resultText =
+      `🏁 Голосування завершено\n\n`;
+
+    if (top[0]) {
+      resultText +=
+        `🥇 ${top[0].district} — ${top[0].total}\n`;
+    }
+
+    if (top[1]) {
+      resultText +=
+        `🥈 ${top[1].district} — ${top[1].total}\n`;
+    }
+
+    if (top[2]) {
+      resultText +=
+        `🥉 ${top[2].district} — ${top[2].total}\n`;
+    }
+
+    //
+    // UPDATE POST
+    //
+    await bot.telegram.editMessageText(
+      process.env.CHANNEL_ID,
+      Number(poll.message_id),
+      null,
+      resultText
+    );
+
+    console.log(
+      "🏁 POLL FINISHED"
+    );
+
+  } catch (error) {
+
+    console.log(error);
+  }
+
+}, 15000);
 //
 // MONO POLLING
 //
