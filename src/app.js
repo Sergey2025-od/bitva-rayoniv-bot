@@ -152,7 +152,12 @@ bot.command("newvote", async (ctx) => {
 //
 bot.on("message", async (ctx) => {
 
-  try {
+  try { 
+  if (
+  ctx.message.text?.startsWith("/")
+) {
+  return;
+}
 
     if (!ctx.message.text) {
       return;
@@ -203,11 +208,21 @@ bot.on("message", async (ctx) => {
     districtsResult.rows.forEach(
       (district) => {
 
+
         text +=
           `${district.emoji} ` +
           `${district.name} — 0\n`;
       }
     );
+
+  text +=
+    `\n\n👇 Голосуйте через бота`;
+
+  text +=
+    `\n@bitva_rayoniv_bot`;
+
+  
+
 
     text +=
       `\n💸 1 грн = 1 голос`;
