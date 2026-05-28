@@ -96,7 +96,7 @@ async function updateLeaderboard(
   //
   // UPDATE POST
   //
-  await bot.telegram.editMessageText(
+  await bot.telegram.editMessageCaption(
     process.env.CHANNEL_ID,
     Number(poll.message_id),
     null,
