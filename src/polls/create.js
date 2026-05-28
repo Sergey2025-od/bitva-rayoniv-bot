@@ -1,9 +1,6 @@
 const pool =
   require("../database/db");
 
-const path =
-  require("path");
-
 module.exports = (
   bot,
   userStates
@@ -149,19 +146,8 @@ module.exports = (
             await bot.telegram.sendPhoto(
               process.env.CHANNEL_ID,
               {
-
-
-photo:
-  {
-    source:
-      "./assets/Vote.jpg"
-  }
-
-
-
-
-
-
+                source:
+                  "./assets/Vote.jpg"
               },
               {
                 caption: text,
