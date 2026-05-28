@@ -277,9 +277,6 @@ bot.action(/^vote_([^_]+)$/, async (ctx) => {
       );
     }
 
-    //
-    // SAVE USER DISTRICT
-    //
     userStates[ctx.from.id] = {
       district:
         districtData.code,
@@ -291,9 +288,6 @@ bot.action(/^vote_([^_]+)$/, async (ctx) => {
         districtData.emoji,
     };
 
-    //
-    // MESSAGE
-    //
     await ctx.reply(
       `🏆 Ви голосуєте за район:\n\n` +
 
@@ -303,28 +297,7 @@ bot.action(/^vote_([^_]+)$/, async (ctx) => {
 
       `💸 1 грн = 1 голос\n\n` +
 
-      `Оберіть спосіб голосування 👇\n\n` +
-
-      `━━━━━━━━━━\n\n` +
-
-      `💳 Донат + коментар\n\n` +
-
-      `1. Натисніть кнопку донату\n` +
-      `2. Задонатьте будь-яку суму\n` +
-      `3. У коментарі до платежу\n` +
-      `напишіть назву району\n\n` +
-
-      `✅ Голоси зарахуються автоматично\n\n` +
-
-      `━━━━━━━━━━\n\n` +
-
-      `📸 Донат + скрін\n\n` +
-
-      `1. Задонатьте будь-яку суму\n` +
-      `2. Зробіть скрін донату\n` +
-      `3. Надішліть скрін боту\n\n` +
-
-      `✅ Адмін вручну підтвердить голоси`,
+      `Оберіть спосіб голосування 👇`,
 
       Markup.inlineKeyboard([
 
@@ -389,13 +362,9 @@ bot.action(
 
       `⚠️ У коментарі до платежу\n` +
 
-      `обов'язково напишіть:\n\n` +
+      `напишіть:\n\n` +
 
-      `${districtData.name}\n\n` +
-
-      `✅ Тоді голоси\n` +
-
-      `зарахуються автоматично`,
+      `${districtData.name}`,
 
       Markup.inlineKeyboard([
         [
@@ -460,10 +429,7 @@ bot.action(
 
       `1. Задонатьте будь-яку суму\n` +
       `2. Зробіть скрін\n` +
-      `3. Надішліть скрін сюди\n\n` +
-
-      `⚠️ На скріні повинна бути\n` +
-      `видна сума донату`,
+      `3. Надішліть скрін сюди`,
 
       Markup.inlineKeyboard([
         [
@@ -476,6 +442,65 @@ bot.action(
     );
   }
 );
+
+//
+// SCREENSHOTS
+//
+bot.on("photo", async (ctx) => {
+
+  try {
+
+    const state =
+      userStates[ctx.from.id];
+
+    if (!state) {
+
+      return ctx.reply(
+        "❌ Спочатку оберіть район."
+      );
+    }
+
+    const photo =
+      ctx.message.photo.pop();
+
+    const fileId =
+      photo.file_id;
+
+    const username =
+      ctx.from.username
+        ? `@${ctx.from.username}`
+        : ctx.from.first_name;
+
+    await bot.telegram.sendPhoto(
+      ADMIN_ID,
+      fileId,
+      {
+        caption:
+          `🆕 Новий скрін донату\n\n` +
+
+          `👤 ${username}\n\n` +
+
+          `🏆 Район:\n` +
+
+          `${state.districtEmoji} ` +
+
+          `${state.districtName}\n\n` +
+
+          `Команда:\n` +
+
+          `/addvote ${state.district} сума`
+      }
+    );
+
+    await ctx.reply(
+      "✅ Скрин відправлено адміну."
+    );
+
+  } catch (error) {
+
+    console.log(error);
+  }
+});
 
 //
 // NEW VOTE
@@ -504,18 +529,12 @@ bot.on("message", async (ctx) => {
 
   try {
 
-    //
-    // SKIP NON TEXT
-    //
     if (
       !ctx.message.text
     ) {
       return;
     }
 
-    //
-    // SKIP COMMANDS
-    //
     if (
       ctx.message.text.startsWith("/")
     ) {
@@ -532,24 +551,15 @@ bot.on("message", async (ctx) => {
     const title =
       ctx.message.text;
 
-    //
-    // CLOSE OLD POLLS
-    //
     await pool.query(`
       UPDATE polls
       SET is_active = false
     `);
 
-    //
-    // RESET VOTES
-    //
     await pool.query(`
       DELETE FROM votes
     `);
 
-    //
-    // GET DISTRICTS
-    //
     const districtsResult =
       await pool.query(`
         SELECT *
@@ -558,9 +568,6 @@ bot.on("message", async (ctx) => {
         ORDER BY id
       `);
 
-    //
-    // BUILD TEXT
-    //
     let text =
       `🏆 ${title}\n\n`;
 
@@ -576,9 +583,6 @@ bot.on("message", async (ctx) => {
     text +=
       `\n💸 1 грн = 1 голос`;
 
-    //
-    // SEND POST
-    //
     const message =
       await bot.telegram.sendMessage(
         process.env.CHANNEL_ID,
@@ -592,7 +596,7 @@ bot.on("message", async (ctx) => {
                     "🗳 ПРОГОЛОСУВАТИ",
 
                   url:
-                    "https://t.me/bitva_rayoniv_bot?start=vote"
+                    "https://t.me/bitva_rayoniv_bot"
                 }
               ]
             ]
@@ -600,9 +604,6 @@ bot.on("message", async (ctx) => {
         }
       );
 
-    //
-    // SAVE POLL
-    //
     await pool.query(
       `
       INSERT INTO polls (
@@ -668,9 +669,6 @@ bot.command("addvote", async (ctx) => {
       );
     }
 
-    //
-    // SAVE VOTE
-    //
     await pool.query(
       `
       INSERT INTO votes (
@@ -690,184 +688,8 @@ bot.command("addvote", async (ctx) => {
       ]
     );
 
-    //
-    // GET ACTIVE POLL
-    //
-    const pollResult =
-      await pool.query(`
-        SELECT *
-        FROM polls
-        WHERE is_active = true
-        ORDER BY id DESC
-        LIMIT 1
-      `);
-
-    const poll =
-      pollResult.rows[0];
-
-    //
-    // TOTALS
-    //
-    const totalsResult =
-      await pool.query(`
-        SELECT
-          district,
-          SUM(amount) as total
-        FROM votes
-        WHERE status = 'approved'
-        GROUP BY district
-      `);
-
-    //
-    // DISTRICTS
-    //
-    const districtsResult =
-      await pool.query(`
-        SELECT *
-        FROM districts
-        WHERE active = true
-        ORDER BY id
-      `);
-
-    //
-    // BUILD LEADERBOARD
-    //
-    let leaderboard =
-      `🏆 ${poll.title}\n\n`;
-
-    for (
-      const districtRow
-      of districtsResult.rows
-    ) {
-
-      const totalRow =
-        totalsResult.rows.find(
-          (r) =>
-            r.district ===
-            districtRow.code
-        );
-
-      const total =
-        totalRow
-          ? totalRow.total
-          : 0;
-
-      leaderboard +=
-        `${districtRow.emoji} ` +
-        `${districtRow.name} — ${total}\n`;
-    }
-
-    leaderboard +=
-      `\n💸 1 грн = 1 голос`;
-
-    //
-    // UPDATE POST
-    //
-    await bot.telegram.editMessageText(
-      process.env.CHANNEL_ID,
-      Number(poll.message_id),
-      null,
-      leaderboard,
-      {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text:
-                  "🗳 ПРОГОЛОСУВАТИ",
-
-                url:
-                  "https://t.me/bitva_rayoniv_bot?start=vote"
-              }
-            ]
-          ]
-        }
-      }
-    );
-
     await ctx.reply(
       "✅ Голоси додано."
-    );
-
-  } catch (error) {
-
-    console.log(error);
-  }
-});
-
-//
-// SCREENSHOTS
-//
-bot.on("photo", async (ctx) => {
-
-  try {
-
-    //
-    // USER STATE
-    //
-    const state =
-      userStates[ctx.from.id];
-
-    if (
-  !state?.district ||
-  !state?.waitingScreenshot
-) {
-
-      return ctx.reply(
-        "❌ Спочатку оберіть район."
-      );
-    }
-
-    //
-    // PHOTO
-    //
-    const photo =
-      ctx.message.photo.pop();
-
-    const fileId =
-      photo.file_id;
-
-    //
-    // USERNAME
-    //
-    const username =
-      ctx.from.username
-        ? `@${ctx.from.username}`
-        : ctx.from.first_name;
-
-    //
-    // SEND TO ADMIN
-    //
-    await bot.telegram.sendPhoto(
-      ADMIN_ID,
-      fileId,
-      {
-        caption:
-          `🆕 Новий скрін донату\n\n` +
-
-          `👤 ${username}\n\n` +
-
-          `🏆 Район:\n` +
-
-          `${state.districtEmoji} ` +
-
-          `${state.districtName}\n\n` +
-
-          `📸 Перевірте оплату\n` +
-
-          `та вручну додайте голоси.\n\n` +
-
-          `Команда:\n` +
-
-          `/addvote ${state.district} сума`
-      }
-    );
-
-    //
-    // REPLY USER
-    //
-    await ctx.reply(
-      "✅ Скрин відправлено адміну."
     );
 
   } catch (error) {
