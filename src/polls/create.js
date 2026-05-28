@@ -149,10 +149,13 @@ module.exports = (
             await bot.telegram.sendPhoto(
               process.env.CHANNEL_ID,
               {
-                source: path.join(
-                  __dirname,
-                  "../assets/Vote.jpg"
-                )
+
+source: path.join(
+  process.cwd(),
+  "src/assets/Vote.jpg"
+)
+
+
               },
               {
                 caption: text,
