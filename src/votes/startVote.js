@@ -1,3 +1,4 @@
+```javascript
 const { Markup } =
   require("telegraf");
 
@@ -15,6 +16,25 @@ module.exports = (
   bot.start(
     async (ctx) => {
 
+      const ADMIN_ID =
+        process.env.ADMIN_ID;
+
+      //
+      // ADMIN
+      //
+      if (
+        ctx.from.id.toString() ===
+        ADMIN_ID
+      ) {
+
+        return ctx.reply(
+          "👑 Ви увійшли як адміністратор\n\n/admin"
+        );
+      }
+
+      //
+      // DISTRICTS
+      //
       const result =
         await pool.query(`
           SELECT *
@@ -32,27 +52,10 @@ module.exports = (
             ),
           ]
         );
-const ADMIN_ID =
-  process.env.ADMIN_ID;
 
-//
-// ADMIN START
-//
-if (
-  ctx.from.id.toString() ===
-  ADMIN_ID
-) {
-
-  return ctx.reply(
-    "👑 Ви увійшли як адміністратор\n\n" +
-
-    "Натисніть:\n" +
-
-    "/admin"
-  );
-}
       await ctx.reply(
-        "🏆 Битва районів Одеси\n\nОберіть район:",
+        "🏆 Оберіть район для голосування:",
+
         Markup.inlineKeyboard(
           buttons
         )
@@ -72,9 +75,6 @@ if (
         const district =
           ctx.match[1];
 
-        //
-        // GET DISTRICT
-        //
         const districtResult =
           await pool.query(
             `
@@ -96,9 +96,6 @@ if (
           );
         }
 
-        //
-        // SAVE STATE
-        //
         userStates[
           ctx.from.id
         ] = {
@@ -112,9 +109,6 @@ if (
             districtData.emoji,
         };
 
-        //
-        // SHOW METHODS
-        //
         await ctx.reply(
           `🏆 Ви голосуєте за район:\n\n` +
 
@@ -162,3 +156,4 @@ if (
   );
 
 };
+```

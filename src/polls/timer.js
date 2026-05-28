@@ -1,3 +1,4 @@
+```javascript
 const pool =
   require("../database/db");
 
@@ -83,34 +84,32 @@ module.exports = (
         );
 
         //
-        // BUILD TEXT
+        // RESULT TEXT
         //
-        const top =
-          totalsResult.rows;
-
         let resultText =
           `🏁 Голосування завершено\n\n`;
 
-        if (top[0]) {
+        totalsResult.rows.forEach(
+          (row, index) => {
 
-          resultText +=
-            `🥇 ${map[top[0].district]?.emoji || ""} ` +
-            `${map[top[0].district]?.name || top[0].district} — ${top[0].total}\n`;
-        }
+            const district =
+              map[row.district];
 
-        if (top[1]) {
+            const medal =
+              index === 0
+                ? "🥇"
+                : index === 1
+                ? "🥈"
+                : index === 2
+                ? "🥉"
+                : "🏆";
 
-          resultText +=
-            `🥈 ${map[top[1].district]?.emoji || ""} ` +
-            `${map[top[1].district]?.name || top[1].district} — ${top[1].total}\n`;
-        }
-
-        if (top[2]) {
-
-          resultText +=
-            `🥉 ${map[top[2].district]?.emoji || ""} ` +
-            `${map[top[2].district]?.name || top[2].district} — ${top[2].total}\n`;
-        }
+            resultText +=
+              `${medal} ` +
+              `${district?.emoji || ""} ` +
+              `${district?.name || row.district} — ${row.total}\n`;
+          }
+        );
 
         //
         // UPDATE POST
@@ -136,3 +135,4 @@ module.exports = (
   );
 
 };
+```
