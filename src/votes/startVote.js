@@ -32,7 +32,25 @@ module.exports = (
             ),
           ]
         );
+const ADMIN_ID =
+  process.env.ADMIN_ID;
 
+//
+// ADMIN START
+//
+if (
+  ctx.from.id.toString() ===
+  ADMIN_ID
+) {
+
+  return ctx.reply(
+    "👑 Ви увійшли як адміністратор\n\n" +
+
+    "Натисніть:\n" +
+
+    "/admin"
+  );
+}
       await ctx.reply(
         "🏆 Битва районів Одеси\n\nОберіть район:",
         Markup.inlineKeyboard(
