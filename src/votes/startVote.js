@@ -1,157 +1,168 @@
-const { Markup } =
+require("dotenv").config();
+
+const { Telegraf } =
   require("telegraf");
 
-const pool =
-  require("../database/db");
+const app =
+  require("./webhook");
 
-module.exports = (
+const {
+  checkMonobank,
+} = require("./mono");
+
+//
+// BOT
+//
+const bot =
+  new Telegraf(
+    process.env.BOT_TOKEN
+  );
+
+//
+// STATES
+//
+const userStates =
+  {};
+
+//
+// ADMIN
+//
+require("./admin/panel")(
   bot,
   userStates
-) => {
+);
 
-  //
-  // START
-  //
-  bot.start(
-    async (ctx) => {
+require("./admin/currentPoll")(
+  bot,
+  userStates
+);
 
-      const ADMIN_ID =
-        process.env.ADMIN_ID;
+require("./admin/tournament")(
+  bot,
+  userStates
+);
 
-      //
-      // ADMIN
-      //
-      if (
-        ctx.from.id.toString() ===
-        ADMIN_ID
-      ) {
+//
+// POLLS
+//
+require("./polls/create")(
+  bot,
+  userStates
+);
 
-        return ctx.reply(
-          "👑 Ви увійшли як адміністратор\n\n/admin"
-        );
-      }
+require("./polls/finish")(
+  bot,
+  userStates
+);
 
-      //
-      // DISTRICTS
-      //
-      const result =
-        await pool.query(`
-          SELECT *
-          FROM districts
-          WHERE active = true
-          ORDER BY id
-        `);
+require("./polls/timer")(
+  bot,
+  userStates
+);
 
-      const buttons =
-        result.rows.map(
-          (district) => [
-            Markup.button.callback(
-              `${district.emoji} ${district.name}`,
-              `vote_${district.code}`
-            ),
-          ]
-        );
+require("./polls/liveCountdown")(
+  bot,
+  userStates
+);
 
-      await ctx.reply(
-        "🏆 Оберіть район для голосування:",
+//
+// VOTES
+//
+require("./votes/manualVotes")(
+  bot,
+  userStates
+);
 
-        Markup.inlineKeyboard(
-          buttons
-        )
-      );
-    }
-  );
+require("./votes/screenshots")(
+  bot,
+  userStates
+);
 
-  //
-  // SELECT DISTRICT
-  //
-  bot.action(
-    /^vote_([^_]+)$/,
-    async (ctx) => {
+require("./votes/commentVotes")(
+  bot,
+  userStates
+);
 
-      try {
+require("./votes/startVote")(
+  bot,
+  userStates
+);
 
-        const district =
-          ctx.match[1];
+//
+// USER COMMANDS
+//
+bot.telegram.setMyCommands([
+  {
+    command: "start",
+    description:
+      "🏆 Голосування",
+  },
+]);
 
-        const districtResult =
-          await pool.query(
-            `
-            SELECT *
-            FROM districts
-            WHERE code = $1
-            LIMIT 1
-            `,
-            [district]
-          );
+//
+// ADMIN COMMANDS
+//
+bot.telegram.setMyCommands(
+  [
+    {
+      command: "admin",
+      description:
+        "👑 Адмін панель",
+    },
+  ],
+  {
+    scope: {
+      type: "chat",
+      chat_id:
+        Number(
+          process.env.ADMIN_ID
+        ),
+    },
+  }
+);
 
-        const districtData =
-          districtResult.rows[0];
 
-        if (!districtData) {
+//
+// START BOT
+//
+bot.launch({
+  dropPendingUpdates: true,
+});
 
-          return ctx.reply(
-            "❌ Район не знайдено."
-          );
-        }
+console.log(
+  "🔥 Bot started"
+);
 
-        userStates[
-          ctx.from.id
-        ] = {
-          district:
-            districtData.code,
+//
+// SERVER
+//
+const PORT =
+  process.env.PORT || 3000;
 
-          districtName:
-            districtData.name,
+app.listen(
+  PORT,
+  () => {
 
-          districtEmoji:
-            districtData.emoji,
-        };
+    console.log(
+      "🚀 Webhook started"
+    );
+  }
+);
 
-        await ctx.reply(
-          `🏆 Ви голосуєте за район:\n\n` +
+//
+// MONO CHECK
+//
+setInterval(
+  () => {
 
-          `${districtData.emoji} ` +
-          `${districtData.name}\n\n` +
+    console.log(
+      "🔄 CHECKING MONO"
+    );
 
-          `💸 1 грн = 1 голос\n\n` +
+    checkMonobank(
+      bot
+    );
 
-          `Оберіть спосіб голосування 👇`,
-
-          {
-            reply_markup: {
-              inline_keyboard: [
-
-                [
-                  {
-                    text:
-                      "💳 Донат + коментар",
-
-                    callback_data:
-                      `vote_comment_${districtData.code}`
-                  }
-                ],
-
-                [
-                  {
-                    text:
-                      "📸 Донат + скрін",
-
-                    callback_data:
-                      `vote_screenshot_${districtData.code}`
-                  }
-                ],
-
-              ]
-            }
-          }
-        );
-
-      } catch (error) {
-
-        console.log(error);
-      }
-    }
-  );
-
-};
+  },
+  35000
+);
