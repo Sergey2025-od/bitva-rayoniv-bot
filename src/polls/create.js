@@ -1,6 +1,9 @@
 const pool =
   require("../database/db");
 
+const path =
+  require("path");
+
 module.exports = (
   bot,
   userStates
@@ -10,18 +13,10 @@ module.exports = (
     "admin_create_poll",
     async (ctx) => {
 
-      const ADMIN_ID =
-        process.env.ADMIN_ID;
-
-      if (
-        ctx.from.id.toString() !==
-        ADMIN_ID
-      ) {
-        return;
-      }
-
-      userStates[ctx.from.id] = {
-        creatingVote: true,
+      userStates[
+        ctx.from.id
+      ] = {
+        creatingPoll: true,
         step: "title",
       };
 
@@ -31,26 +26,11 @@ module.exports = (
     }
   );
 
-  //
-  // CREATE POLL
-  //
   bot.on(
-    "message",
+    "text",
     async (ctx, next) => {
 
       try {
-
-        if (
-          !ctx.message.text
-        ) {
-          return next();
-        }
-
-        if (
-          ctx.message.text.startsWith("/")
-        ) {
-          return next();
-        }
 
         const state =
           userStates[
@@ -58,7 +38,7 @@ module.exports = (
           ];
 
         if (
-          !state?.creatingVote
+          !state?.creatingPoll
         ) {
           return next();
         }
@@ -78,7 +58,7 @@ module.exports = (
             "minutes";
 
           return ctx.reply(
-            "⏱ Введіть час голосування у хвилинах"
+            "⏱ Введіть час у хвилинах"
           );
         }
 
@@ -102,134 +82,130 @@ module.exports = (
             );
           }
 
-          state.minutes =
-            minutes;
-
-          state.step =
-            "create";
-        }
-
-        //
-        // READY
-        //
-        if (
-          state.step !==
-          "create"
-        ) {
-          return next();
-        }
-
-        const title =
-          state.title;
-
-        const endTime =
-          new Date(
-            Date.now() +
-            (
-              state.minutes *
-              60 *
-              1000
-            )
-          );
-
-        //
-        // CLOSE OLD
-        //
-        await pool.query(`
-          UPDATE polls
-          SET is_active = false
-        `);
-
-        //
-        // CLEAR VOTES
-        //
-        await pool.query(`
-          DELETE FROM votes
-        `);
-
-        //
-        // DISTRICTS
-        //
-        const districtsResult =
+          //
+          // CLOSE OLD
+          //
           await pool.query(`
-            SELECT *
-            FROM districts
-            WHERE active = true
-            ORDER BY id
+            UPDATE polls
+            SET is_active = false
           `);
 
-        //
-        // BUILD TEXT
-        //
-        let text =
-          `🏆 ${title}\n\n`;
+          //
+          // CLEAR VOTES
+          //
+          await pool.query(`
+            DELETE FROM votes
+          `);
 
-        districtsResult.rows.forEach(
-          (district) => {
+          //
+          // END TIME
+          //
+          const endTime =
+            new Date(
+              Date.now() +
+              (
+                minutes *
+                60 *
+                1000
+              )
+            );
 
-            text +=
-              `${district.emoji} ` +
-              `${district.name} — 0\n`;
-          }
-        );
+          //
+          // DISTRICTS
+          //
+          const districtsResult =
+            await pool.query(`
+              SELECT *
+              FROM districts
+              WHERE active = true
+              ORDER BY id
+            `);
 
-        text +=
-          `\n\n⏱ Залишилось: ${state.minutes} хв`;
+          //
+          // BUILD TEXT
+          //
+          let text =
+            `🏆 ${state.title}\n\n`;
 
-        text +=
-          `\n\n💸 1 грн = 1 голос`;
+          districtsResult.rows.forEach(
+            (district) => {
 
-        //
-        // SEND POST
-        //
-        const message =
-          await bot.telegram.sendMessage(
-            process.env.CHANNEL_ID,
-            text,
-            {
-              reply_markup: {
-                inline_keyboard: [
-                  [
-                    {
-                      text:
-                        "🗳 ПРОГОЛОСУВАТИ",
-
-                      url:
-                        "https://t.me/bitva_rayoniv_bot?start=vote"
-                    }
-                  ]
-                ]
-              }
+              text +=
+                `${district.emoji} ` +
+                `${district.name} — 0\n`;
             }
           );
 
-        //
-        // SAVE POLL
-        //
-        await pool.query(
-          `
-          INSERT INTO polls (
-            title,
-            message_id,
-            is_active,
-            end_time
-          )
-          VALUES ($1, $2, true, $3)
-          `,
-          [
-            title,
-            message.message_id.toString(),
-            endTime,
-          ]
-        );
+          text +=
+            `\n\n⏱️ Залишилось: ${minutes} хв`;
 
-        delete userStates[
-          ctx.from.id
-        ];
+          text +=
+            `\n\n💸 1 грн = 1 голос`;
 
-        await ctx.reply(
-          "✅ Голосування створено."
-        );
+          //
+          // SEND PHOTO POST
+          //
+          const message =
+            await bot.telegram.sendPhoto(
+              process.env.CHANNEL_ID,
+              {
+                source: path.join(
+                  __dirname,
+                  "../assets/vote.jpg"
+                )
+              },
+              {
+                caption: text,
+
+                reply_markup: {
+                  inline_keyboard: [
+                    [
+                      {
+                        text:
+                          "🗳 ПРОГОЛОСУВАТИ",
+
+                        url:
+                          "https://t.me/bitva_rayoniv_bot?start=vote"
+                      }
+                    ]
+                  ]
+                }
+              }
+            );
+
+          //
+          // SAVE POLL
+          //
+          await pool.query(
+            `
+            INSERT INTO polls (
+              title,
+              message_id,
+              is_active,
+              end_time
+            )
+            VALUES (
+              $1,
+              $2,
+              true,
+              $3
+            )
+            `,
+            [
+              state.title,
+              message.message_id,
+              endTime,
+            ]
+          );
+
+          delete userStates[
+            ctx.from.id
+          ];
+
+          await ctx.reply(
+            "✅ Голосування створено"
+          );
+        }
 
       } catch (error) {
 
@@ -241,4 +217,6 @@ module.exports = (
       }
     }
   );
+
 };
+
