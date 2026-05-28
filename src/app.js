@@ -754,6 +754,24 @@ if (
 }
 
 //
+// TITLE STEP
+//
+if (
+  state.step === "title"
+) {
+
+  state.title =
+    ctx.message.text;
+
+  state.step =
+    "minutes";
+
+  return ctx.reply(
+    "⏱ Введіть час голосування у хвилинах"
+  );
+}
+
+//
 // MINUTES STEP
 //
 if (
@@ -772,6 +790,18 @@ if (
 
   state.minutes =
     minutes;
+
+  state.step =
+    "create";
+}
+
+//
+// NOT READY
+//
+if (
+  state.step !== "create"
+) {
+  return;
 }
 
 const title =
