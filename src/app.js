@@ -669,6 +669,9 @@ bot.command("addvote", async (ctx) => {
       );
     }
 
+    //
+    // SAVE VOTE
+    //
     await pool.query(
       `
       INSERT INTO votes (
@@ -688,6 +691,108 @@ bot.command("addvote", async (ctx) => {
       ]
     );
 
+    //
+    // ACTIVE POLL
+    //
+    const pollResult =
+      await pool.query(`
+        SELECT *
+        FROM polls
+        WHERE is_active = true
+        ORDER BY id DESC
+        LIMIT 1
+      `);
+
+    const poll =
+      pollResult.rows[0];
+
+    if (!poll) {
+
+      return ctx.reply(
+        "❌ Немає активного голосування"
+      );
+    }
+
+    //
+    // TOTALS
+    //
+    const totalsResult =
+      await pool.query(`
+        SELECT
+          district,
+          SUM(amount) as total
+        FROM votes
+        WHERE status = 'approved'
+        GROUP BY district
+      `);
+
+    //
+    // DISTRICTS
+    //
+    const districtsResult =
+      await pool.query(`
+        SELECT *
+        FROM districts
+        WHERE active = true
+        ORDER BY id
+      `);
+
+    //
+    // BUILD TEXT
+    //
+    let leaderboard =
+      `🏆 ${poll.title}\n\n`;
+
+    for (
+      const districtRow
+      of districtsResult.rows
+    ) {
+
+      const totalRow =
+        totalsResult.rows.find(
+          (r) =>
+            r.district ===
+            districtRow.code
+        );
+
+      const total =
+        totalRow
+          ? totalRow.total
+          : 0;
+
+      leaderboard +=
+        `${districtRow.emoji} ` +
+        `${districtRow.name} — ${total}\n`;
+    }
+
+    leaderboard +=
+      `\n💸 1 грн = 1 голос`;
+
+    //
+    // UPDATE POST
+    //
+    await bot.telegram.editMessageText(
+      process.env.CHANNEL_ID,
+      Number(poll.message_id),
+      null,
+      leaderboard,
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text:
+                  "🗳 ПРОГОЛОСУВАТИ",
+
+                url:
+                  "https://t.me/bitva_rayoniv_bot"
+              }
+            ]
+          ]
+        }
+      }
+    );
+
     await ctx.reply(
       "✅ Голоси додано."
     );
@@ -695,6 +800,10 @@ bot.command("addvote", async (ctx) => {
   } catch (error) {
 
     console.log(error);
+
+    await ctx.reply(
+      "❌ Помилка addvote"
+    );
   }
 });
 
