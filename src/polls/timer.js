@@ -5,9 +5,11 @@ module.exports = (
   bot
 ) => {
 
-  bot.action(
-    "admin_finish_poll",
-    async (ctx) => {
+  //
+  // AUTO FINISH
+  //
+  setInterval(
+    async () => {
 
       try {
 
@@ -15,6 +17,7 @@ module.exports = (
           await pool.query(`
             SELECT *
             FROM polls
+            WHERE is_active = true
             ORDER BY id DESC
             LIMIT 1
           `);
@@ -23,21 +26,23 @@ module.exports = (
           pollResult.rows[0];
 
         if (!poll) {
-
-          return ctx.reply(
-            "❌ Немає голосування"
-          );
-        }
-
-        if (!poll.is_active) {
-
-          return ctx.reply(
-            "⚠️ Голосування вже завершене"
-          );
+          return;
         }
 
         //
-        // CLOSE
+        // NOT ENDED
+        //
+        if (
+          new Date() <
+          new Date(
+            poll.end_time
+          )
+        ) {
+          return;
+        }
+
+        //
+        // CLOSE POLL
         //
         await pool.query(`
           UPDATE polls
@@ -117,14 +122,17 @@ module.exports = (
           resultText
         );
 
-        await ctx.reply(
-          "🏁 Голосування завершено"
+        console.log(
+          "🏁 POLL FINISHED"
         );
 
       } catch (error) {
 
         console.log(error);
       }
-    }
+
+    },
+    15000
   );
+
 };
