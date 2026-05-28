@@ -151,7 +151,7 @@ module.exports = (
               {
                 source: path.join(
                   __dirname,
-                  "../assets/vote.jpg"
+                  "../assets/Vote.jpg"
                 )
               },
               {
