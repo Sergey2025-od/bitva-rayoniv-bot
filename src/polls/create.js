@@ -147,7 +147,7 @@ module.exports = (
               process.env.CHANNEL_ID,
               {
                 source:
-                  "./assets/Vote.jpg"
+                  "./assets/Vote.png"
               },
               {
                 caption: text,
