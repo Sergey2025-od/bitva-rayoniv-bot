@@ -721,12 +721,14 @@ bot.on("message", async (ctx) => {
       state.title;
 
     const endTime =
-      Date.now() +
-      (
-        state.minutes *
-        60 *
-        1000
-      );
+  new Date(
+    Date.now() +
+    (
+      state.minutes *
+      60 *
+      1000
+    )
+  );
 
     await pool.query(`
       UPDATE polls
