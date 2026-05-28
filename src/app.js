@@ -9,18 +9,19 @@ const {
   checkMonobank,
 } = require("./mono");
 
+const {
+  registerAdminPanel,
+} = require("./admin/panel");
+
 const bot = new Telegraf(
   process.env.BOT_TOKEN
 );
 
 const ADMIN_ID =
   process.env.ADMIN_ID;
-const {
-  registerAdminPanel,
-} = require(
-  "./admin/panel"
-);
+
 const userStates = {};
+
 registerAdminPanel(
   bot,
   ADMIN_ID
@@ -87,6 +88,20 @@ bot.action(/vote_(.+)/, async (ctx) => {
     }
 
     //
+    // SAVE USER DISTRICT
+    //
+    userStates[ctx.from.id] = {
+      district:
+        districtData.code,
+
+      districtName:
+        districtData.name,
+
+      districtEmoji:
+        districtData.emoji,
+    };
+
+    //
     // DONATE URL
     //
     const donateUrl =
@@ -111,6 +126,7 @@ bot.action(/vote_(.+)/, async (ctx) => {
       `надішліть сюди скрін.\n\n` +
 
       `👇 Натисніть кнопку нижче`,
+
       Markup.inlineKeyboard([
         [
           Markup.button.url(
@@ -152,14 +168,23 @@ bot.command("newvote", async (ctx) => {
 //
 bot.on("message", async (ctx) => {
 
-  try { 
-  if (
-  ctx.message.text?.startsWith("/")
-) {
-  return;
-}
+  try {
 
-    if (!ctx.message.text) {
+    //
+    // SKIP NON TEXT
+    //
+    if (
+      !ctx.message.text
+    ) {
+      return;
+    }
+
+    //
+    // SKIP COMMANDS
+    //
+    if (
+      ctx.message.text.startsWith("/")
+    ) {
       return;
     }
 
@@ -208,21 +233,11 @@ bot.on("message", async (ctx) => {
     districtsResult.rows.forEach(
       (district) => {
 
-
         text +=
           `${district.emoji} ` +
           `${district.name} — 0\n`;
       }
     );
-
-  text +=
-    `\n\n👇 Голосуйте через бота`;
-
-  text +=
-    `\n@bitva_rayoniv_bot`;
-
-  
-
 
     text +=
       `\n💸 1 грн = 1 голос`;
@@ -273,7 +288,9 @@ bot.on("message", async (ctx) => {
       "✅ Голосування створено."
     );
 
-    delete userStates[ctx.from.id];
+    delete userStates[
+      ctx.from.id
+    ];
 
   } catch (error) {
 
@@ -451,6 +468,22 @@ bot.on("photo", async (ctx) => {
 
   try {
 
+    //
+    // USER STATE
+    //
+    const state =
+      userStates[ctx.from.id];
+
+    if (!state?.district) {
+
+      return ctx.reply(
+        "❌ Спочатку оберіть район."
+      );
+    }
+
+    //
+    // PHOTO
+    //
     const photo =
       ctx.message.photo.pop();
 
@@ -458,7 +491,7 @@ bot.on("photo", async (ctx) => {
       photo.file_id;
 
     //
-    // USER
+    // USERNAME
     //
     const username =
       ctx.from.username
@@ -477,13 +510,19 @@ bot.on("photo", async (ctx) => {
 
           `👤 ${username}\n\n` +
 
+          `🏆 Район:\n` +
+
+          `${state.districtEmoji} ` +
+
+          `${state.districtName}\n\n` +
+
           `📸 Перевірте оплату\n` +
 
           `та вручну додайте голоси.\n\n` +
 
           `Команда:\n` +
 
-          `/addvote район сума`
+          `/addvote ${state.district} сума`
       }
     );
 
