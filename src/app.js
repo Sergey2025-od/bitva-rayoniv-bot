@@ -89,6 +89,40 @@ require("./votes/startVote")(
 );
 
 //
+// USER COMMANDS
+//
+bot.telegram.setMyCommands([
+  {
+    command: "start",
+    description:
+      "🏆 Голосування",
+  },
+]);
+
+//
+// ADMIN COMMANDS
+//
+bot.telegram.setMyCommands(
+  [
+    {
+      command: "admin",
+      description:
+        "👑 Адмін панель",
+    },
+  ],
+  {
+    scope: {
+      type: "chat",
+      chat_id:
+        Number(
+          process.env.ADMIN_ID
+        ),
+    },
+  }
+);
+
+
+//
 // START BOT
 //
 bot.launch({
