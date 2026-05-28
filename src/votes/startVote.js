@@ -33,21 +33,6 @@ async (ctx) => {
   }
 
   //
-  // AUTO OPEN VOTING
-  //
-  const payload =
-    ctx.startPayload;
-
-  if (
-    payload !== "vote"
-  ) {
-
-    return ctx.reply(
-      "🏆 Натисніть кнопку голосування у каналі."
-    );
-  }
-
-  //
   // ACTIVE POLL
   //
   const pollResult =
