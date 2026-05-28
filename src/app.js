@@ -42,9 +42,9 @@ bot.action(
     }
 
     userStates[ctx.from.id] = {
-  creatingVote: true,
-  step: "title",
-};
+      creatingVote: true,
+      step: "title",
+    };
 
     await ctx.reply(
       "📝 Введіть назву голосування"
@@ -120,22 +120,26 @@ bot.action(
           `${district.name} — ${total}\n`;
       }
 
+      const leftMinutes =
+        Math.max(
+          0,
+          Math.floor(
+            (
+              Number(poll.end_time) -
+              Date.now()
+            ) / 60000
+          )
+        );
+
+      text +=
+        `\n\n⏱ Залишилось: ${leftMinutes} хв`;
+
       await ctx.reply(text);
 
     } catch (error) {
 
       console.log(error);
     }
-  }
-);
-
-bot.action(
-  "admin_add_votes",
-  async (ctx) => {
-
-    await ctx.reply(
-      "➕ Використовуйте:\n/addvote район сума"
-    );
   }
 );
 
@@ -172,43 +176,6 @@ bot.action(
 
       await ctx.reply(
         "🏁 Голосування завершено"
-      );
-
-    } catch (error) {
-
-      console.log(error);
-    }
-  }
-);
-
-bot.action(
-  "admin_stats",
-  async (ctx) => {
-
-    try {
-
-      const votesResult =
-        await pool.query(`
-          SELECT
-            COUNT(*) as votes,
-            COALESCE(
-              SUM(amount),
-              0
-            ) as amount
-          FROM votes
-          WHERE status = 'approved'
-        `);
-
-      await ctx.reply(
-        `📈 Статистика\n\n` +
-
-        `🗳 Голосів: ` +
-
-        `${votesResult.rows[0].votes}\n\n` +
-
-        `💸 Донатів: ` +
-
-        `${votesResult.rows[0].amount} грн`
       );
 
     } catch (error) {
@@ -292,9 +259,7 @@ bot.action(/^vote_([^_]+)$/, async (ctx) => {
     await ctx.reply(
       `🏆 Ви голосуєте за район:\n\n` +
 
-      `${districtData.emoji} ` +
-
-      `${districtData.name}\n\n` +
+      `${districtData.emoji} ${districtData.name}\n\n` +
 
       `💸 1 грн = 1 голос\n\n` +
 
@@ -357,13 +322,9 @@ bot.action(
 
       `🏆 Район:\n` +
 
-      `${districtData.emoji} ` +
+      `${districtData.emoji} ${districtData.name}\n\n` +
 
-      `${districtData.name}\n\n` +
-
-      `⚠️ У коментарі до платежу\n` +
-
-      `напишіть:\n\n` +
+      `⚠️ У коментарі до платежу напишіть:\n\n` +
 
       `${districtData.name}`,
 
@@ -412,8 +373,6 @@ bot.action(
 
       districtEmoji:
         districtData.emoji,
-
-      waitingScreenshot: true,
     };
 
     const donateUrl =
@@ -424,9 +383,7 @@ bot.action(
 
       `🏆 Район:\n` +
 
-      `${districtData.emoji} ` +
-
-      `${districtData.name}\n\n` +
+      `${districtData.emoji} ${districtData.name}\n\n` +
 
       `1. Задонатьте будь-яку суму\n` +
       `2. Зробіть скрін\n` +
@@ -454,7 +411,7 @@ bot.on("photo", async (ctx) => {
     const state =
       userStates[ctx.from.id];
 
-    if (!state) {
+    if (!state?.district) {
 
       return ctx.reply(
         "❌ Спочатку оберіть район."
@@ -473,35 +430,35 @@ bot.on("photo", async (ctx) => {
         : ctx.from.first_name;
 
     await bot.telegram.sendPhoto(
-  ADMIN_ID,
-  fileId,
-  {
-    caption:
-      `🆕 Новий скрін донату\n\n` +
+      ADMIN_ID,
+      fileId,
+      {
+        caption:
+          `🆕 Новий скрін донату\n\n` +
 
-      `👤 ${username}\n\n` +
+          `👤 ${username}\n\n` +
 
-      `🏆 Район:\n` +
+          `🏆 Район:\n` +
 
-      `${state.districtEmoji} ` +
+          `${state.districtEmoji} ` +
 
-      `${state.districtName}`,
+          `${state.districtName}`,
 
-    reply_markup: {
-      inline_keyboard: [
-        [
-          {
-            text:
-              "✅ Додати голоси",
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text:
+                  "✅ Додати голоси",
 
-            callback_data:
-              `manual_vote_${state.district}`
-          }
-        ]
-      ]
-    }
-  }
-);
+                callback_data:
+                  `manual_vote_${state.district}`
+              }
+            ]
+          ]
+        }
+      }
+    );
 
     await ctx.reply(
       "✅ Скрин відправлено адміну."
@@ -513,25 +470,6 @@ bot.on("photo", async (ctx) => {
   }
 });
 
-//
-// NEW VOTE
-//
-bot.command("newvote", async (ctx) => {
-
-  if (
-    ctx.from.id.toString() !== ADMIN_ID
-  ) {
-    return;
-  }
-
-  userStates[ctx.from.id] = {
-    creatingVote: true,
-  };
-
-  await ctx.reply(
-    "📝 Введіть назву голосування"
-  );
-});
 //
 // MANUAL VOTE
 //
@@ -552,6 +490,96 @@ bot.action(
     );
   }
 );
+
+//
+// UPDATE LEADERBOARD
+//
+async function updateLeaderboard() {
+
+  const pollResult =
+    await pool.query(`
+      SELECT *
+      FROM polls
+      WHERE is_active = true
+      ORDER BY id DESC
+      LIMIT 1
+    `);
+
+  const poll =
+    pollResult.rows[0];
+
+  if (!poll) {
+    return;
+  }
+
+  const totalsResult =
+    await pool.query(`
+      SELECT
+        district,
+        SUM(amount) as total
+      FROM votes
+      WHERE status = 'approved'
+      GROUP BY district
+    `);
+
+  const districtsResult =
+    await pool.query(`
+      SELECT *
+      FROM districts
+      WHERE active = true
+      ORDER BY id
+    `);
+
+  let leaderboard =
+    `🏆 ${poll.title}\n\n`;
+
+  for (
+    const districtRow
+    of districtsResult.rows
+  ) {
+
+    const totalRow =
+      totalsResult.rows.find(
+        (r) =>
+          r.district ===
+          districtRow.code
+      );
+
+    const total =
+      totalRow
+        ? totalRow.total
+        : 0;
+
+    leaderboard +=
+      `${districtRow.emoji} ` +
+      `${districtRow.name} — ${total}\n`;
+  }
+
+  leaderboard +=
+    `\n💸 1 грн = 1 голос`;
+
+  await bot.telegram.editMessageText(
+    process.env.CHANNEL_ID,
+    Number(poll.message_id),
+    null,
+    leaderboard,
+    {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text:
+                "🗳 ПРОГОЛОСУВАТИ",
+
+              url:
+                "https://t.me/bitva_rayoniv_bot"
+            }
+          ]
+        ]
+      }
+    }
+  );
+}
 
 //
 // MANUAL AMOUNT
@@ -579,9 +607,6 @@ bot.on("text", async (ctx, next) => {
       );
     }
 
-    //
-    // SAVE VOTE
-    //
     await pool.query(
       `
       INSERT INTO votes (
@@ -601,100 +626,7 @@ bot.on("text", async (ctx, next) => {
       ]
     );
 
-    //
-    // ACTIVE POLL
-    //
-    const pollResult =
-      await pool.query(`
-        SELECT *
-        FROM polls
-        WHERE is_active = true
-        ORDER BY id DESC
-        LIMIT 1
-      `);
-
-    const poll =
-      pollResult.rows[0];
-
-    //
-    // TOTALS
-    //
-    const totalsResult =
-      await pool.query(`
-        SELECT
-          district,
-          SUM(amount) as total
-        FROM votes
-        WHERE status = 'approved'
-        GROUP BY district
-      `);
-
-    //
-    // DISTRICTS
-    //
-    const districtsResult =
-      await pool.query(`
-        SELECT *
-        FROM districts
-        WHERE active = true
-        ORDER BY id
-      `);
-
-    //
-    // BUILD TEXT
-    //
-    let leaderboard =
-      `🏆 ${poll.title}\n\n`;
-
-    for (
-      const districtRow
-      of districtsResult.rows
-    ) {
-
-      const totalRow =
-        totalsResult.rows.find(
-          (r) =>
-            r.district ===
-            districtRow.code
-        );
-
-      const total =
-        totalRow
-          ? totalRow.total
-          : 0;
-
-      leaderboard +=
-        `${districtRow.emoji} ` +
-        `${districtRow.name} — ${total}\n`;
-    }
-
-    leaderboard +=
-      `\n💸 1 грн = 1 голос`;
-
-    //
-    // UPDATE POST
-    //
-    await bot.telegram.editMessageText(
-      process.env.CHANNEL_ID,
-      Number(poll.message_id),
-      null,
-      leaderboard,
-      {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text:
-                  "🗳 ПРОГОЛОСУВАТИ",
-
-                url:
-                  "https://t.me/bitva_rayoniv_bot"
-              }
-            ]
-          ]
-        }
-      }
-    );
+    await updateLeaderboard();
 
     delete userStates[
       ctx.from.id
@@ -709,6 +641,7 @@ bot.on("text", async (ctx, next) => {
     console.log(error);
   }
 });
+
 //
 // CREATE POST
 //
@@ -736,84 +669,66 @@ bot.on("message", async (ctx) => {
     }
 
     //
-// TITLE STEP
-//
-if (
-  state.step === "title"
-) {
+    // TITLE STEP
+    //
+    if (
+      state.step === "title"
+    ) {
 
-  state.title =
-    ctx.message.text;
+      state.title =
+        ctx.message.text;
 
-  state.step =
-    "minutes";
+      state.step =
+        "minutes";
 
-  return ctx.reply(
-    "⏱ Введіть час голосування у хвилинах"
-  );
-}
+      return ctx.reply(
+        "⏱ Введіть час голосування у хвилинах"
+      );
+    }
 
-//
-// TITLE STEP
-//
-if (
-  state.step === "title"
-) {
+    //
+    // MINUTES STEP
+    //
+    if (
+      state.step === "minutes"
+    ) {
 
-  state.title =
-    ctx.message.text;
+      const minutes =
+        Number(ctx.message.text);
 
-  state.step =
-    "minutes";
+      if (!minutes) {
 
-  return ctx.reply(
-    "⏱ Введіть час голосування у хвилинах"
-  );
-}
+        return ctx.reply(
+          "❌ Введіть число"
+        );
+      }
 
-//
-// MINUTES STEP
-//
-if (
-  state.step === "minutes"
-) {
+      state.minutes =
+        minutes;
 
-  const minutes =
-    Number(ctx.message.text);
+      state.step =
+        "create";
+    }
 
-  if (!minutes) {
+    //
+    // NOT READY
+    //
+    if (
+      state.step !== "create"
+    ) {
+      return;
+    }
 
-    return ctx.reply(
-      "❌ Введіть число"
-    );
-  }
+    const title =
+      state.title;
 
-  state.minutes =
-    minutes;
-
-  state.step =
-    "create";
-}
-
-//
-// NOT READY
-//
-if (
-  state.step !== "create"
-) {
-  return;
-}
-
-const title =
-  state.title;
-
-const endTime =
-  Date.now() +
-  (
-    state.minutes *
-    60 *
-    1000
-  );
+    const endTime =
+      Date.now() +
+      (
+        state.minutes *
+        60 *
+        1000
+      );
 
     await pool.query(`
       UPDATE polls
@@ -871,19 +786,18 @@ const endTime =
     await pool.query(
       `
       INSERT INTO polls (
-  title,
-  message_id,
-  is_active,
-  end_time
-)
+        title,
+        message_id,
+        is_active,
+        end_time
       )
       VALUES ($1, $2, true, $3)
       `,
       [
-  title,
-  message.message_id.toString(),
-  endTime,
-]
+        title,
+        message.message_id.toString(),
+        endTime,
+      ]
     );
 
     await ctx.reply(
@@ -904,198 +818,6 @@ const endTime =
   }
 });
 
-//
-// ADD VOTES
-//
-bot.command("addvote", async (ctx) => {
-
-  if (
-    ctx.from.id.toString() !== ADMIN_ID
-  ) {
-    return;
-  }
-
-  try {
-
-    const args =
-      ctx.message.text.split(" ");
-
-    const district =
-      args[1];
-
-    const amount =
-      Number(args[2]);
-
-    if (
-      !district ||
-      !amount
-    ) {
-
-      return ctx.reply(
-        "Приклад:\n/addvote cheremushki 50"
-      );
-    }
-
-    //
-    // SAVE VOTE
-    //
-    await pool.query(
-      `
-      INSERT INTO votes (
-        user_id,
-        username,
-        district,
-        amount,
-        status
-      )
-      VALUES ($1, $2, $3, $4, 'approved')
-      `,
-      [
-        "admin",
-        "admin",
-        district,
-        amount,
-      ]
-    );
-
-    //
-    // ACTIVE POLL
-    //
-    const pollResult =
-      await pool.query(`
-        SELECT *
-        FROM polls
-        WHERE is_active = true
-        ORDER BY id DESC
-        LIMIT 1
-      `);
-
-    const poll =
-      pollResult.rows[0];
-
-    if (!poll) {
-
-      return ctx.reply(
-        "❌ Немає активного голосування"
-      );
-    }
-
-    //
-    // TOTALS
-    //
-    const totalsResult =
-      await pool.query(`
-        SELECT
-          district,
-          SUM(amount) as total
-        FROM votes
-        WHERE status = 'approved'
-        GROUP BY district
-      `);
-
-    //
-    // DISTRICTS
-    //
-    const districtsResult =
-      await pool.query(`
-        SELECT *
-        FROM districts
-        WHERE active = true
-        ORDER BY id
-      `);
-
-    //
-    // BUILD TEXT
-    //
-    let leaderboard =
-      `🏆 ${poll.title}\n\n`;
-
-    for (
-      const districtRow
-      of districtsResult.rows
-    ) {
-
-      const totalRow =
-        totalsResult.rows.find(
-          (r) =>
-            r.district ===
-            districtRow.code
-        );
-
-      const total =
-        totalRow
-          ? totalRow.total
-          : 0;
-
-      leaderboard +=
-        `${districtRow.emoji} ` +
-        `${districtRow.name} — ${total}\n`;
-    }
-
-    leaderboard +=
-      `\n💸 1 грн = 1 голос`;
-
-    //
-    // UPDATE POST
-    //
-    await bot.telegram.editMessageText(
-      process.env.CHANNEL_ID,
-      Number(poll.message_id),
-      null,
-      leaderboard,
-      {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text:
-                  "🗳 ПРОГОЛОСУВАТИ",
-
-                url:
-                  "https://t.me/bitva_rayoniv_bot"
-              }
-            ]
-          ]
-        }
-      }
-    );
-
-    await ctx.reply(
-      "✅ Голоси додано."
-    );
-
-  } catch (error) {
-
-    console.log(error);
-
-    await ctx.reply(
-      "❌ Помилка addvote"
-    );
-  }
-});
-
-//
-// LAUNCH
-//
-bot.launch({
-  dropPendingUpdates: true,
-});
-
-console.log("🔥 Bot started");
-
-//
-// WEBHOOK SERVER
-//
-const PORT =
-  process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-
-  console.log(
-    "🚀 Webhook server started"
-  );
-
-});
 //
 // AUTO FINISH
 //
@@ -1119,9 +841,6 @@ setInterval(async () => {
       return;
     }
 
-    //
-    // NOT ENDED
-    //
     if (
       Date.now() <
       Number(poll.end_time)
@@ -1129,18 +848,12 @@ setInterval(async () => {
       return;
     }
 
-    //
-    // FINISH POLL
-    //
     await pool.query(`
       UPDATE polls
       SET is_active = false
       WHERE id = ${poll.id}
     `);
 
-    //
-    // TOTALS
-    //
     const totalsResult =
       await pool.query(`
         SELECT
@@ -1152,6 +865,22 @@ setInterval(async () => {
         ORDER BY total DESC
       `);
 
+    const districtsResult =
+      await pool.query(`
+        SELECT *
+        FROM districts
+      `);
+
+    const map =
+      {};
+
+    districtsResult.rows.forEach(
+      (d) => {
+
+        map[d.code] = d;
+      }
+    );
+
     const top =
       totalsResult.rows;
 
@@ -1159,23 +888,26 @@ setInterval(async () => {
       `🏁 Голосування завершено\n\n`;
 
     if (top[0]) {
+
       resultText +=
-        `🥇 ${top[0].district} — ${top[0].total}\n`;
+        `🥇 ${map[top[0].district]?.emoji || ""} ` +
+        `${map[top[0].district]?.name || top[0].district} — ${top[0].total}\n`;
     }
 
     if (top[1]) {
+
       resultText +=
-        `🥈 ${top[1].district} — ${top[1].total}\n`;
+        `🥈 ${map[top[1].district]?.emoji || ""} ` +
+        `${map[top[1].district]?.name || top[1].district} — ${top[1].total}\n`;
     }
 
     if (top[2]) {
+
       resultText +=
-        `🥉 ${top[2].district} — ${top[2].total}\n`;
+        `🥉 ${map[top[2].district]?.emoji || ""} ` +
+        `${map[top[2].district]?.name || top[2].district} — ${top[2].total}\n`;
     }
 
-    //
-    // UPDATE POST
-    //
     await bot.telegram.editMessageText(
       process.env.CHANNEL_ID,
       Number(poll.message_id),
@@ -1193,6 +925,30 @@ setInterval(async () => {
   }
 
 }, 15000);
+
+//
+// LAUNCH
+//
+bot.launch({
+  dropPendingUpdates: true,
+});
+
+console.log("🔥 Bot started");
+
+//
+// WEBHOOK SERVER
+//
+const PORT =
+  process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+
+  console.log(
+    "🚀 Webhook server started"
+  );
+
+});
+
 //
 // MONO POLLING
 //
