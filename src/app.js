@@ -592,10 +592,10 @@ bot.on("text", async (ctx, next) => {
       userStates[ctx.from.id];
 
     if (
-      !state?.addingVotes
-    ) {
-      return next();
-    }
+  !state?.addingVotes
+) {
+  return;
+}
 
     const amount =
       Number(ctx.message.text);
