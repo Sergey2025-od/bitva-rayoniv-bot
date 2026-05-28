@@ -85,7 +85,7 @@ module.exports = (
         );
 
         //
-        // MAIN POST
+        // KEEP ORIGINAL POST
         //
         let text =
           `🏆 ${poll.title}\n\n`;
@@ -112,14 +112,11 @@ module.exports = (
         );
 
         //
-        // FINISH
+        // FINAL BLOCK
         //
         text +=
           `\n\n🏁 Голосування завершено`;
 
-        //
-        // FINAL RESULTS
-        //
         text +=
           `\n\n📊 Фінальні результати:\n`;
 
@@ -200,7 +197,7 @@ module.exports = (
         //
         // UPDATE POST
         //
-        await bot.telegram.editMessageText(
+        await bot.telegram.editMessageCaption(
           process.env.CHANNEL_ID,
           Number(
             poll.message_id
