@@ -110,7 +110,7 @@ async function updateLeaderboard(
                 "🗳 ПРОГОЛОСУВАТИ",
 
               url:
-                "https://t.me/bitva_rayoniv_bot"
+                "https://t.me/bitva_rayoniv_bot?start=vote"
             }
           ]
         ]
