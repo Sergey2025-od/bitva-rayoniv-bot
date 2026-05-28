@@ -1,168 +1,222 @@
-require("dotenv").config();
+const { Markup } =
+require("telegraf");
 
-const { Telegraf } =
-  require("telegraf");
+const pool =
+require("../database/db");
 
-const app =
-  require("./webhook");
-
-const {
-  checkMonobank,
-} = require("./mono");
-
-//
-// BOT
-//
-const bot =
-  new Telegraf(
-    process.env.BOT_TOKEN
-  );
+module.exports = (
+bot,
+userStates
+) => {
 
 //
-// STATES
+// START
 //
-const userStates =
-  {};
+bot.start(
+async (ctx) => {
 
-//
-// ADMIN
-//
-require("./admin/panel")(
-  bot,
-  userStates
-);
 
-require("./admin/currentPoll")(
-  bot,
-  userStates
-);
+  const ADMIN_ID =
+    process.env.ADMIN_ID;
 
-require("./admin/tournament")(
-  bot,
-  userStates
-);
+  //
+  // ADMIN
+  //
+  if (
+    ctx.from.id.toString() ===
+    ADMIN_ID
+  ) {
 
-//
-// POLLS
-//
-require("./polls/create")(
-  bot,
-  userStates
-);
+    return ctx.reply(
+      "👑 Ви увійшли як адміністратор\n\n/admin"
+    );
+  }
 
-require("./polls/finish")(
-  bot,
-  userStates
-);
+  //
+  // AUTO OPEN VOTING
+  //
+  const payload =
+    ctx.startPayload;
 
-require("./polls/timer")(
-  bot,
-  userStates
-);
+  if (
+    payload !== "vote"
+  ) {
 
-require("./polls/liveCountdown")(
-  bot,
-  userStates
-);
+    return ctx.reply(
+      "🏆 Натисніть кнопку голосування у каналі."
+    );
+  }
 
-//
-// VOTES
-//
-require("./votes/manualVotes")(
-  bot,
-  userStates
-);
+  //
+  // ACTIVE POLL
+  //
+  const pollResult =
+    await pool.query(`
+      SELECT *
+      FROM polls
+      WHERE is_active = true
+      ORDER BY id DESC
+      LIMIT 1
+    `);
 
-require("./votes/screenshots")(
-  bot,
-  userStates
-);
+  const poll =
+    pollResult.rows[0];
 
-require("./votes/commentVotes")(
-  bot,
-  userStates
-);
+  if (!poll) {
 
-require("./votes/startVote")(
-  bot,
-  userStates
-);
+    return ctx.reply(
+      "❌ Зараз немає активного голосування."
+    );
+  }
 
-//
-// USER COMMANDS
-//
-bot.telegram.setMyCommands([
-  {
-    command: "start",
-    description:
-      "🏆 Голосування",
-  },
-]);
+  //
+  // DISTRICTS
+  //
+  const result =
+    await pool.query(`
+      SELECT *
+      FROM districts
+      WHERE active = true
+      ORDER BY id
+    `);
 
-//
-// ADMIN COMMANDS
-//
-bot.telegram.setMyCommands(
-  [
-    {
-      command: "admin",
-      description:
-        "👑 Адмін панель",
-    },
-  ],
-  {
-    scope: {
-      type: "chat",
-      chat_id:
-        Number(
-          process.env.ADMIN_ID
+  const buttons =
+    result.rows.map(
+      (district) => [
+        Markup.button.callback(
+          `${district.emoji} ${district.name}`,
+          `vote_${district.code}`
         ),
-    },
+      ]
+    );
+
+  await ctx.reply(
+    "🏆 Оберіть район для голосування:",
+
+    Markup.inlineKeyboard(
+      buttons
+    )
+  );
+}
+
+
+);
+
+//
+// SELECT DISTRICT
+//
+bot.action(
+/^vote_([^_]+)$/,
+async (ctx) => {
+
+
+  try {
+
+    //
+    // ACTIVE POLL
+    //
+    const pollResult =
+      await pool.query(`
+        SELECT *
+        FROM polls
+        WHERE is_active = true
+        ORDER BY id DESC
+        LIMIT 1
+      `);
+
+    const poll =
+      pollResult.rows[0];
+
+    if (!poll) {
+
+      return ctx.reply(
+        "❌ Голосування завершено."
+      );
+    }
+
+    const district =
+      ctx.match[1];
+
+    const districtResult =
+      await pool.query(
+        `
+        SELECT *
+        FROM districts
+        WHERE code = $1
+        LIMIT 1
+        `,
+        [district]
+      );
+
+    const districtData =
+      districtResult.rows[0];
+
+    if (!districtData) {
+
+      return ctx.reply(
+        "❌ Район не знайдено."
+      );
+    }
+
+    userStates[
+      ctx.from.id
+    ] = {
+      district:
+        districtData.code,
+
+      districtName:
+        districtData.name,
+
+      districtEmoji:
+        districtData.emoji,
+    };
+
+    await ctx.reply(
+      `🏆 Ви голосуєте за район:\n\n` +
+
+      `${districtData.emoji} ` +
+      `${districtData.name}\n\n` +
+
+      `💸 1 грн = 1 голос\n\n` +
+
+      `Оберіть спосіб голосування 👇`,
+
+      {
+        reply_markup: {
+          inline_keyboard: [
+
+            [
+              {
+                text:
+                  "💳 Донат + коментар",
+
+                callback_data:
+                  `vote_comment_${districtData.code}`
+              }
+            ],
+
+            [
+              {
+                text:
+                  "📸 Донат + скрін",
+
+                callback_data:
+                  `vote_screenshot_${districtData.code}`
+              }
+            ],
+
+          ]
+        }
+      }
+    );
+
+  } catch (error) {
+
+    console.log(error);
   }
+}
+
+
 );
 
-
-//
-// START BOT
-//
-bot.launch({
-  dropPendingUpdates: true,
-});
-
-console.log(
-  "🔥 Bot started"
-);
-
-//
-// SERVER
-//
-const PORT =
-  process.env.PORT || 3000;
-
-app.listen(
-  PORT,
-  () => {
-
-    console.log(
-      "🚀 Webhook started"
-    );
-  }
-);
-
-//
-// MONO CHECK
-//
-setInterval(
-  () => {
-
-    console.log(
-      "🔄 CHECKING MONO"
-    );
-
-    checkMonobank(
-      bot
-    );
-
-  },
-  35000
-);
+};
