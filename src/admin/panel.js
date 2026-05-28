@@ -1,60 +1,70 @@
 const { Markup } =
-  require("telegraf");
+require("telegraf");
 
 module.exports = (
-  bot
+bot
 ) => {
 
-  bot.command(
-    "admin",
-    async (ctx) => {
+bot.command(
+"admin",
+async (ctx) => {
 
-      const ADMIN_ID =
-        process.env.ADMIN_ID;
 
-      if (
-        ctx.from.id.toString() !==
-        ADMIN_ID
-      ) {
-        return;
-      }
+  const ADMIN_ID =
+    process.env.ADMIN_ID;
 
-      await ctx.reply(
-        "⚙️ Адмін панель",
+  if (
+    ctx.from.id.toString() !==
+    ADMIN_ID
+  ) {
+    return;
+  }
 
-        Markup.inlineKeyboard([
+  await ctx.reply(
+    "⚙️ Адмін панель",
 
-          [
-            Markup.button.callback(
-              "🆕 Створити голосування",
-              "admin_create_poll"
-            ),
-          ],
+    Markup.inlineKeyboard([
 
-          [
-            Markup.button.callback(
-              "📊 Поточне голосування",
-              "admin_current_poll"
-            ),
-          ],
+      [
+        Markup.button.callback(
+          "🆕 Створити голосування",
+          "admin_create_poll"
+        ),
+      ],
 
-          [
-            Markup.button.callback(
-              "🏁 Завершити голосування",
-              "admin_finish_poll"
-            ),
-          ],
+      [
+        Markup.button.callback(
+          "📊 Поточне голосування",
+          "admin_current_poll"
+        ),
+      ],
 
-          [
-            Markup.button.callback(
-              "🏆 Створити турнір",
-              "admin_create_tournament"
-            ),
-          ],
+      [
+        Markup.button.callback(
+          "➕ Додати голоси",
+          "admin_add_votes"
+        ),
+      ],
 
-        ])
-      );
-    }
+      [
+        Markup.button.callback(
+          "🏁 Завершити голосування",
+          "admin_finish_poll"
+        ),
+      ],
+
+      [
+        Markup.button.callback(
+          "🏆 Створити турнір",
+          "admin_create_tournament"
+        ),
+      ],
+
+    ])
   );
+}
+
+
+);
 
 };
