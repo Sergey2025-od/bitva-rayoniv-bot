@@ -27,9 +27,9 @@ async (ctx) => {
 
       [
         Markup.button.callback(
-          "🆕 Створити голосування",
-          "admin_create_poll"
-        ),
+  "🆕 Створити голосування",
+  "admin_poll_type"
+),
       ],
 
       [
