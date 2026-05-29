@@ -93,7 +93,7 @@ if (
     (option) => {
 
       text +=
-        `🏆 ${option.option_text} — 0\n`;
+  ` ${option.title} — ${option.votes}\n`;
     }
   );
 
