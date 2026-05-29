@@ -125,13 +125,13 @@ bot.telegram.setMyCommands(
 //
 // START BOT
 //
-bot.launch({
-  dropPendingUpdates: true,
-});
+//bot.launch({
+ // dropPendingUpdates: true,
+//});
 
-console.log(
-  "🔥 Bot started"
-);
+//console.log(
+//  "🔥 Bot started"
+//);
 
 //
 // SERVER
