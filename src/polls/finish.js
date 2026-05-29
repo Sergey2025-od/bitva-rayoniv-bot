@@ -25,6 +25,10 @@ module.exports = (
 
         const poll =
           pollResult.rows[0];
+        console.log(
+  "FINISH POLL",
+  poll
+);
 
         if (!poll) {
 
