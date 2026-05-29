@@ -1,17 +1,15 @@
 const pool =
   require("../database/db");
+
 module.exports = (
   bot
 ) => {
-  //
-  // AUTO FINISH
-  //
+
   setInterval(
     async () => {
+
       try {
-        //
-        // ACTIVE POLL
-        //
+
         const pollResult =
           await pool.query(`
             SELECT *
@@ -20,18 +18,14 @@ module.exports = (
             ORDER BY id DESC
             LIMIT 1
           `);
+
         const poll =
           pollResult.rows[0];
-        console.log(
-  "AUTO TIMER",
-  poll
-);
+
         if (!poll) {
           return;
         }
-        //
-        // CHECK TIME
-        //
+
         if (
           new Date() <
           new Date(
@@ -40,17 +34,18 @@ module.exports = (
         ) {
           return;
         }
-        //
-        // CLOSE POLL
-        //
+
+        console.log(
+          "AUTO FINISH",
+          poll
+        );
+
         await pool.query(`
           UPDATE polls
           SET is_active = false
           WHERE id = ${poll.id}
         `);
-        //
-        // TOTALS
-        //
+
         const totalsResult =
           await pool.query(`
             SELECT
@@ -64,9 +59,7 @@ module.exports = (
             GROUP BY district
             ORDER BY total DESC
           `);
-        //
-        // DISTRICTS
-        //
+
         const districtsResult =
           await pool.query(`
             SELECT *
@@ -74,109 +67,172 @@ module.exports = (
             WHERE active = true
             ORDER BY id
           `);
-        //
-        // MAP
-        //
+
         const map = {};
+
         districtsResult.rows.forEach(
           (district) => {
+
             map[
               district.code
             ] = district;
           }
         );
-        //
-        // MAIN POST
-        //
+
         let text =
           `🏆 ${poll.title}\n\n`;
-        districtsResult.rows.forEach(
-          (district) => {
-            const row =
-              totalsResult.rows.find(
-                (r) =>
-                  r.district ===
-                  district.code
-              );
-            const total =
-              row
-                ? row.total
-                : 0;
-            text +=
-              `${district.emoji} ` +
-              `${district.name} — ${total}\n`;
-          }
-        );
-        //
-        // FINISH
-        //
+
+        if (
+          poll.poll_type ===
+          "custom"
+        ) {
+
+          const optionsResult =
+            await pool.query(
+              `
+              SELECT *
+              FROM poll_options
+              WHERE poll_id = $1
+              ORDER BY votes DESC, id
+              `,
+              [poll.id]
+            );
+
+          optionsResult.rows.forEach(
+            (option) => {
+
+              text +=
+                `🔹 ${option.title} — ${option.votes}\n`;
+            }
+          );
+
+        } else {
+
+          districtsResult.rows.forEach(
+            (district) => {
+
+              const row =
+                totalsResult.rows.find(
+                  (r) =>
+                    r.district ===
+                    district.code
+                );
+
+              const total =
+                row
+                  ? row.total
+                  : 0;
+
+              text +=
+                `${district.emoji} ` +
+                `${district.name} — ${total}\n`;
+            }
+          );
+        }
+
         text +=
           `\n\n🏁 Голосування завершено`;
-        //
-        // FINAL RESULTS
-        //
+
         text +=
           `\n\n📊 Фінальні результати:\n`;
-        //
-        // TOP 1
-        //
+
         if (
-          totalsResult.rows[0]
+          poll.poll_type ===
+          "custom"
         ) {
-          const winner =
-            map[
-              totalsResult.rows[0]
-                .district
-            ];
+
+          const optionsResult =
+            await pool.query(
+              `
+              SELECT *
+              FROM poll_options
+              WHERE poll_id = $1
+              ORDER BY votes DESC, id
+              `,
+              [poll.id]
+            );
+
+          if (
+            optionsResult.rows[0]
+          ) {
+
+            text +=
+              `\n🥇 Переможець\n` +
+              `${optionsResult.rows[0].title} — ${optionsResult.rows[0].votes} голосів\n`;
+          }
+
+          if (
+            optionsResult.rows[1]
+          ) {
+
+            text +=
+              `\n🥈 2 місце\n` +
+              `${optionsResult.rows[1].title} — ${optionsResult.rows[1].votes} голосів\n`;
+          }
+
+          if (
+            optionsResult.rows[2]
+          ) {
+
+            text +=
+              `\n🥉 3 місце\n` +
+              `${optionsResult.rows[2].title} — ${optionsResult.rows[2].votes} голосів\n`;
+          }
+
           text +=
-            `\n🥇 Переможець\n` +
-            `${winner.emoji} ` +
-            `${winner.name} — ` +
-            `${totalsResult.rows[0].total} голосів\n`;
-        }
-        //
-        // TOP 2
-        //
-        if (
-          totalsResult.rows[1]
-        ) {
-          const second =
-            map[
-              totalsResult.rows[1]
-                .district
-            ];
+            `\n❤️ Дякуємо всім за участь у голосуванні`;
+
+        } else {
+
+          if (
+            totalsResult.rows[0]
+          ) {
+
+            const winner =
+              map[
+                totalsResult.rows[0]
+                  .district
+              ];
+
+            text +=
+              `\n🥇 Переможець\n` +
+              `${winner.emoji} ${winner.name} — ${totalsResult.rows[0].total} голосів\n`;
+          }
+
+          if (
+            totalsResult.rows[1]
+          ) {
+
+            const second =
+              map[
+                totalsResult.rows[1]
+                  .district
+              ];
+
+            text +=
+              `\n🥈 2 місце\n` +
+              `${second.emoji} ${second.name} — ${totalsResult.rows[1].total} голосів\n`;
+          }
+
+          if (
+            totalsResult.rows[2]
+          ) {
+
+            const third =
+              map[
+                totalsResult.rows[2]
+                  .district
+              ];
+
+            text +=
+              `\n🥉 3 місце\n` +
+              `${third.emoji} ${third.name} — ${totalsResult.rows[2].total} голосів\n`;
+          }
+
           text +=
-            `\n🥈 2 місце\n` +
-            `${second.emoji} ` +
-            `${second.name} — ` +
-            `${totalsResult.rows[1].total} голосів\n`;
+            `\n❤️ Дякуємо всім за участь у битві за свій район`;
         }
-        //
-        // TOP 3
-        //
-        if (
-          totalsResult.rows[2]
-        ) {
-          const third =
-            map[
-              totalsResult.rows[2]
-                .district
-            ];
-          text +=
-            `\n🥉 3 місце\n` +
-            `${third.emoji} ` +
-            `${third.name} — ` +
-            `${totalsResult.rows[2].total} голосів\n`;
-        }
-        //
-        // THANKS
-        //
-        text +=
-          `\n❤️ Дякуємо всім ` +
-          `за участь у битві за свій район`;
-        //
-        // UPDATE PHOTO CAPTION
-        //
+
         await bot.telegram.editMessageCaption(
           process.env.CHANNEL_ID,
           Number(
@@ -190,13 +246,18 @@ module.exports = (
             }
           }
         );
+
         console.log(
-          "🏁 POLL FINISHED"
+          "🏁 POLL AUTO FINISHED"
         );
+
       } catch (error) {
+
         console.log(error);
       }
+
     },
     15000
   );
+
 };
