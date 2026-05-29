@@ -10,7 +10,7 @@ userStates
 // DISTRICT SCREENSHOT FLOW
 //
 bot.action(
-/vote_screenshot_(.+)/,
+/^vote_screenshot_(?!option_)(.+)$/,
 async (ctx) => {
 
 
