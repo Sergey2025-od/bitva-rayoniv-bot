@@ -344,30 +344,43 @@ if (
             );
 
           //
-          // DISTRICTS
-          //
-          const districtsResult =
-            await pool.query(`
-              SELECT *
-              FROM districts
-              WHERE active = true
-              ORDER BY id
-            `);
+// TEXT
+//
+let text =
+  `🏆 ${state.title}\n\n`;
 
-          //
-          // TEXT
-          //
-          let text =
-            `🏆 ${state.title}\n\n`;
+if (
+  state.pollType ===
+  "custom"
+) {
 
-          districtsResult.rows.forEach(
-            (district) => {
+  state.options.forEach(
+    (option) => {
 
-              text +=
-                `${district.emoji} ` +
-                `${district.name} — 0\n`;
-            }
-          );
+      text +=
+        `🏆 ${option} — 0\n`;
+    }
+  );
+
+} else {
+
+  const districtsResult =
+    await pool.query(`
+      SELECT *
+      FROM districts
+      WHERE active = true
+      ORDER BY id
+    `);
+
+  districtsResult.rows.forEach(
+    (district) => {
+
+      text +=
+        `${district.emoji} ` +
+        `${district.name} — 0\n`;
+    }
+  );
+}
 
           text +=
             `\n\n⏱️ Залишилось: ${minutes} хв`;
