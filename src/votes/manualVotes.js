@@ -25,13 +25,48 @@ async (ctx) => {
 try {
 
 
-const districtsResult =
+const pollResult =
   await pool.query(`
     SELECT *
-    FROM districts
-    WHERE active = true
-    ORDER BY id
+    FROM polls
+    WHERE is_active = true
+    ORDER BY id DESC
+    LIMIT 1
   `);
+
+const poll =
+  pollResult.rows[0];
+
+let districtsResult;
+
+if (
+  poll?.tournament_districts
+) {
+
+  districtsResult =
+    await pool.query(
+      `
+      SELECT *
+      FROM districts
+      WHERE code = ANY($1)
+      ORDER BY id
+      `,
+      [
+        poll.tournament_districts
+          .split(",")
+      ]
+    );
+
+} else {
+
+  districtsResult =
+    await pool.query(`
+      SELECT *
+      FROM districts
+      WHERE active = true
+      ORDER BY id
+    `);
+}
 
 const buttons =
   districtsResult.rows.map(
