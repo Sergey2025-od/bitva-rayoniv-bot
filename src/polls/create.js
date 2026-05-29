@@ -177,7 +177,45 @@ if (
       "✏️ Введіть варіанти голосування\n\nКожен варіант з нового рядка"
     );
   }
-//
+
+
+  state.options =
+    options;
+
+  state.step =
+    "voteType";
+
+  return ctx.reply(
+    "📊 Тип голосування",
+    {
+      reply_markup: {
+        inline_keyboard: [
+
+          [
+            {
+              text:
+                "💸 Донатне",
+              callback_data:
+                "vote_type_donate"
+            }
+          ],
+
+          [
+            {
+              text:
+                "🆓 Безкоштовне",
+              callback_data:
+                "vote_type_free"
+            }
+          ]
+
+        ]
+      }
+    }
+  );
+}
+
+        //
 // OPTIONS
 //
 if (
@@ -237,7 +275,7 @@ if (
     }
   );
 }
-  //
+        //
   // DISTRICT POLL
   //
   state.step =
