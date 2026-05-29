@@ -86,23 +86,7 @@ bot.action(
   }
 );
 
-  //
-  // START CREATE
-  //
  
-
-      userStates[
-        ctx.from.id
-      ] = {
-        creatingPoll: true,
-        step: "photo",
-      };
-
-      await ctx.reply(
-        "📸 Надішліть фото для голосування"
-      );
-    }
-  );
 
   //
   // PHOTO
