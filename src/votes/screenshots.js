@@ -1,155 +1,253 @@
 const pool =
-  require("../database/db");
+require("../database/db");
 
 module.exports = (
-  bot,
-  userStates
+bot,
+userStates
 ) => {
 
-  //
-  // SCREENSHOT FLOW
-  //
-  bot.action(
-    /vote_screenshot_(.+)/,
-    async (ctx) => {
+//
+// DISTRICT SCREENSHOT FLOW
+//
+bot.action(
+/vote_screenshot_(.+)/,
+async (ctx) => {
 
-      const district =
-        ctx.match[1];
 
-      const districtResult =
-        await pool.query(
-          `
-          SELECT *
-          FROM districts
-          WHERE code = $1
-          LIMIT 1
-          `,
-          [district]
-        );
+  const district =
+    ctx.match[1];
 
-      const districtData =
-        districtResult.rows[0];
+  const districtResult =
+    await pool.query(
+      `
+      SELECT *
+      FROM districts
+      WHERE code = $1
+      LIMIT 1
+      `,
+      [district]
+    );
 
-      userStates[
-        ctx.from.id
-      ] = {
-        district:
-          districtData.code,
+  const districtData =
+    districtResult.rows[0];
 
-        districtName:
-          districtData.name,
+  userStates[
+    ctx.from.id
+  ] = {
+    district:
+      districtData.code,
 
-        districtEmoji:
-          districtData.emoji,
-      };
+    districtName:
+      districtData.name,
 
-      const donateUrl =
-        `https://send.monobank.ua/jar/3NysFcAawr`;
+    districtEmoji:
+      districtData.emoji,
+  };
 
-      await ctx.reply(
-        `📸 Донат + скрін\n\n` +
+  const donateUrl =
+    `https://send.monobank.ua/jar/3NysFcAawr`;
 
-        `🏆 Район:\n` +
+  await ctx.reply(
+    `📸 Донат + скрін\n\n` +
 
-        `${districtData.emoji} ` +
-        `${districtData.name}\n\n` +
+    `🏆 Район:\n` +
 
-        `1. Задонатьте будь-яку суму\n` +
-        `2. Зробіть скрін\n` +
-        `3. Надішліть скрін сюди`,
+    `${districtData.emoji} ` +
+    `${districtData.name}\n\n` +
 
-        {
-          reply_markup: {
-            inline_keyboard: [
-              [
-                {
-                  text:
-                    "💳 ВІДКРИТИ MONO",
+    `1. Задонатьте будь-яку суму\n` +
+    `2. Зробіть скрін\n` +
+    `3. Надішліть скрін сюди`,
 
-                  url:
-                    donateUrl
-                }
-              ]
-            ]
-          }
-        }
-      );
-    }
-  );
+    {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text:
+                "💳 ВІДКРИТИ MONO",
 
-  //
-  // SCREENSHOT RECEIVE
-  //
-  bot.on(
-    "photo",
-    async (ctx, next) => {
-
-      try {
-
-        const state =
-          userStates[
-            ctx.from.id
-          ];
-
-        if (
-          !state?.district
-        ) {
-          return next();
-        }
-
-        const photo =
-          ctx.message.photo.pop();
-
-        const fileId =
-          photo.file_id;
-
-        const username =
-          ctx.from.username
-            ? `@${ctx.from.username}`
-            : ctx.from.first_name;
-
-        //
-        // SEND TO ADMIN
-        //
-        await bot.telegram.sendPhoto(
-          process.env.ADMIN_ID,
-          fileId,
-          {
-            caption:
-              `🆕 Новий скрін донату\n\n` +
-
-              `👤 ${username}\n\n` +
-
-              `🏆 Район:\n` +
-
-              `${state.districtEmoji} ` +
-              `${state.districtName}`,
-
-            reply_markup: {
-              inline_keyboard: [
-                [
-                  {
-                    text:
-                      "✅ Додати голоси",
-
-                    callback_data:
-                      `manual_vote_${state.district}`
-                  }
-                ]
-              ]
+              url:
+                donateUrl
             }
-          }
-        );
-
-        await ctx.reply(
-          "✅ Скрин відправлено адміну."
-        );
-
-      } catch (error) {
-
-        console.log(error);
+          ]
+        ]
       }
     }
   );
+}
+
+
+);
+
+//
+// CUSTOM SCREENSHOT FLOW
+//
+bot.action(
+/vote_screenshot_option_(.+)/,
+async (ctx) => {
+
+
+  try {
+
+    const optionId =
+      ctx.match[1];
+
+    const optionResult =
+      await pool.query(
+        `
+        SELECT *
+        FROM poll_options
+        WHERE id = $1
+        LIMIT 1
+        `,
+        [optionId]
+      );
+
+    const option =
+      optionResult.rows[0];
+
+    if (!option) {
+
+      return ctx.reply(
+        "❌ Варіант не знайдено"
+      );
+    }
+
+    userStates[
+      ctx.from.id
+    ] = {
+      customOption:
+        option.id,
+
+      customTitle:
+        option.title,
+    };
+
+    const donateUrl =
+      `https://send.monobank.ua/jar/3NysFcAawr`;
+
+    await ctx.reply(
+      `📸 Донат + скрін\n\n` +
+
+      `🏆 Варіант:\n\n` +
+
+      `${option.title}\n\n` +
+
+      `1. Задонатьте будь-яку суму\n` +
+      `2. Зробіть скрін\n` +
+      `3. Надішліть скрін сюди`,
+
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text:
+                  "💳 ВІДКРИТИ MONO",
+
+                url:
+                  donateUrl
+              }
+            ]
+          ]
+        }
+      }
+    );
+
+  } catch (error) {
+
+    console.log(error);
+  }
+}
+
+
+);
+
+//
+// SCREENSHOT RECEIVE
+//
+bot.on(
+"photo",
+async (ctx, next) => {
+
+
+  try {
+
+    const state =
+      userStates[
+        ctx.from.id
+      ];
+
+    if (
+      !state?.district &&
+      !state?.customOption
+    ) {
+      return next();
+    }
+
+    const photo =
+      ctx.message.photo.pop();
+
+    const fileId =
+      photo.file_id;
+
+    const username =
+      ctx.from.username
+        ? `@${ctx.from.username}`
+        : ctx.from.first_name;
+
+    await bot.telegram.sendPhoto(
+      process.env.ADMIN_ID,
+      fileId,
+      {
+        caption:
+
+          state.customOption
+
+            ? `🆕 Новий скрін донату\n\n` +
+              `👤 ${username}\n\n` +
+              `🏆 Варіант:\n` +
+              `${state.customTitle}`
+
+            : `🆕 Новий скрін донату\n\n` +
+              `👤 ${username}\n\n` +
+              `🏆 Район:\n` +
+              `${state.districtEmoji} ` +
+              `${state.districtName}`,
+
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text:
+                  "✅ Додати голоси",
+
+                callback_data:
+
+                  state.customOption
+
+                    ? `manual_option_${state.customOption}`
+
+                    : `manual_vote_${state.district}`
+              }
+            ]
+          ]
+        }
+      }
+    );
+
+    await ctx.reply(
+      "✅ Скрин відправлено адміну."
+    );
+
+  } catch (error) {
+
+    console.log(error);
+  }
+}
+
+
+);
 
 };
