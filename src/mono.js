@@ -79,7 +79,85 @@ console.log(
         "💬 TX TEXT:",
         text
       );
+//
+// CUSTOM POLL
+//
+const pollResult =
+  await pool.query(`
+    SELECT *
+    FROM polls
+    WHERE is_active = true
+    ORDER BY id DESC
+    LIMIT 1
+  `);
 
+const poll =
+  pollResult.rows[0];
+
+if (
+  poll &&
+  poll.poll_type === "custom"
+) {
+
+  const optionsResult =
+    await pool.query(
+      `
+      SELECT *
+      FROM poll_options
+      WHERE poll_id = $1
+      `,
+      [poll.id]
+    );
+
+  let matchedOption =
+    null;
+
+  for (
+    const option
+    of optionsResult.rows
+  ) {
+
+    if (
+      text.includes(
+        option.title.toLowerCase()
+      )
+    ) {
+
+      matchedOption =
+        option;
+
+      break;
+    }
+  }
+
+  if (
+    matchedOption
+  ) {
+
+    const amount =
+      Math.floor(
+        tx.amount / 100
+      );
+
+    await pool.query(
+      `
+      UPDATE poll_options
+      SET votes = votes + $1
+      WHERE id = $2
+      `,
+      [
+        amount,
+        matchedOption.id
+      ]
+    );
+
+    console.log(
+      `✅ CUSTOM VOTE: ${matchedOption.title} +${amount}`
+    );
+
+    continue;
+  }
+}
       //
       // DISTRICT MATCH
       //
