@@ -147,71 +147,90 @@ if (
         text +=
           `\n\n📊 Фінальні результати:\n`;
 
-        //
-        // TOP 1
-        //
-        if (
-          totalsResult.rows[0]
-        ) {
+       if (
+  poll.poll_type ===
+  "custom"
+) {
 
-          const winner =
-            map[
-              totalsResult.rows[0]
-                .district
-            ];
+  const optionsResult =
+    await pool.query(
+      `
+      SELECT *
+      FROM poll_options
+      WHERE poll_id = $1
+      ORDER BY votes DESC, id
+      `,
+      [poll.id]
+    );
 
-          text +=
-            `\n🥇 Переможець\n` +
+  if (optionsResult.rows[0]) {
 
-            `${winner.emoji} ` +
-            `${winner.name} — ` +
+    text +=
+      `\n🥇 Переможець\n` +
+      `${optionsResult.rows[0].title} — ${optionsResult.rows[0].votes} голосів\n`;
+  }
 
-            `${totalsResult.rows[0].total} голосів\n`;
-        }
+  if (optionsResult.rows[1]) {
 
-        //
-        // TOP 2
-        //
-        if (
-          totalsResult.rows[1]
-        ) {
+    text +=
+      `\n🥈 2 місце\n` +
+      `${optionsResult.rows[1].title} — ${optionsResult.rows[1].votes} голосів\n`;
+  }
 
-          const second =
-            map[
-              totalsResult.rows[1]
-                .district
-            ];
+  if (optionsResult.rows[2]) {
 
-          text +=
-            `\n🥈 2 місце\n` +
+    text +=
+      `\n🥉 3 місце\n` +
+      `${optionsResult.rows[2].title} — ${optionsResult.rows[2].votes} голосів\n`;
+  }
 
-            `${second.emoji} ` +
-            `${second.name} — ` +
+} else {
 
-            `${totalsResult.rows[1].total} голосів\n`;
-        }
+  if (
+    totalsResult.rows[0]
+  ) {
 
-        //
-        // TOP 3
-        //
-        if (
-          totalsResult.rows[2]
-        ) {
+    const winner =
+      map[
+        totalsResult.rows[0]
+          .district
+      ];
 
-          const third =
-            map[
-              totalsResult.rows[2]
-                .district
-            ];
+    text +=
+      `\n🥇 Переможець\n` +
+      `${winner.emoji} ${winner.name} — ${totalsResult.rows[0].total} голосів\n`;
+  }
 
-          text +=
-            `\n🥉 3 місце\n` +
+  if (
+    totalsResult.rows[1]
+  ) {
 
-            `${third.emoji} ` +
-            `${third.name} — ` +
+    const second =
+      map[
+        totalsResult.rows[1]
+          .district
+      ];
 
-            `${totalsResult.rows[2].total} голосів\n`;
-        }
+    text +=
+      `\n🥈 2 місце\n` +
+      `${second.emoji} ${second.name} — ${totalsResult.rows[1].total} голосів\n`;
+  }
+
+  if (
+    totalsResult.rows[2]
+  ) {
+
+    const third =
+      map[
+        totalsResult.rows[2]
+          .district
+      ];
+
+    text +=
+      `\n🥉 3 місце\n` +
+      `${third.emoji} ${third.name} — ${totalsResult.rows[2].total} голосів\n`;
+  }
+}
 
         //
 // THANKS
