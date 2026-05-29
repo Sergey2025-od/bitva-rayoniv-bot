@@ -63,7 +63,10 @@ module.exports = (
             WHERE status = 'approved'
             GROUP BY district
           `);
-
+console.log(
+  "LIVE POLL",
+  poll
+);
         //
         // DISTRICTS
         //
