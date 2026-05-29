@@ -509,17 +509,27 @@ bot.action(
           reply_markup: {
             inline_keyboard: [
 
-              [
-                {
-                  text:
-                    "💳 Донат + коментар",
+  [
+    {
+      text:
+        "💳 Донат + коментар",
 
-                  callback_data:
-                    `vote_comment_option_${ctx.match[1]}`
-                }
-              ]
+      callback_data:
+        `vote_comment_option_${ctx.match[1]}`
+    }
+  ],
 
-            ]
+  [
+    {
+      text:
+        "📸 Донат + скрін",
+
+      callback_data:
+        `vote_screenshot_option_${ctx.match[1]}`
+    }
+  ]
+
+]
           }
         }
       );
