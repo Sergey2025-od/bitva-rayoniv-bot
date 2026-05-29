@@ -151,24 +151,43 @@ bot.action(
           return next();
         }
 
-        //
-        // TITLE
-        //
-        if (
-          state.step ===
-          "title"
-        ) {
+       //
+// TITLE
+//
+if (
+  state.step ===
+  "title"
+) {
 
-          state.title =
-            ctx.message.text;
+  state.title =
+    ctx.message.text;
 
-          state.step =
-            "minutes";
+  //
+  // CUSTOM POLL
+  //
+  if (
+    state.pollType ===
+    "custom"
+  ) {
 
-          return ctx.reply(
-            "⏱ Введіть час у хвилинах"
-          );
-        }
+    state.step =
+      "options";
+
+    return ctx.reply(
+      "✏️ Введіть варіанти голосування\n\nКожен варіант з нового рядка"
+    );
+  }
+
+  //
+  // DISTRICT POLL
+  //
+  state.step =
+    "minutes";
+
+  return ctx.reply(
+    "⏱ Введіть час у хвилинах"
+  );
+}
 
         //
         // MINUTES
