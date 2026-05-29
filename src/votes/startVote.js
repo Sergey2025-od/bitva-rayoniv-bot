@@ -113,10 +113,7 @@ await ctx.reply(
   )
 );
 
-    Markup.inlineKeyboard(
-      buttons
-    )
-  );
+   
 }
 
 
@@ -220,10 +217,7 @@ await ctx.reply(
   )
 );
 
-    Markup.inlineKeyboard(
-      buttons
-    )
-  );
+   
 }
 
 
