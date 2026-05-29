@@ -90,13 +90,36 @@ async (ctx) => {
   );
 }
 
-const result =
-  await pool.query(`
-    SELECT *
-    FROM districts
-    WHERE active = true
-    ORDER BY id
-  `);
+let result;
+
+if (
+  poll.tournament_districts
+) {
+
+  result =
+    await pool.query(
+      `
+      SELECT *
+      FROM districts
+      WHERE code = ANY($1)
+      ORDER BY id
+      `,
+      [
+        poll.tournament_districts
+          .split(",")
+      ]
+    );
+
+} else {
+
+  result =
+    await pool.query(`
+      SELECT *
+      FROM districts
+      WHERE active = true
+      ORDER BY id
+    `);
+}
 
 const buttons =
   result.rows.map(
@@ -196,13 +219,36 @@ async (ctx, next) => {
   );
 }
 
-const result =
-  await pool.query(`
-    SELECT *
-    FROM districts
-    WHERE active = true
-    ORDER BY id
-  `);
+let result;
+
+if (
+  poll.tournament_districts
+) {
+
+  result =
+    await pool.query(
+      `
+      SELECT *
+      FROM districts
+      WHERE code = ANY($1)
+      ORDER BY id
+      `,
+      [
+        poll.tournament_districts
+          .split(",")
+      ]
+    );
+
+} else {
+
+  result =
+    await pool.query(`
+      SELECT *
+      FROM districts
+      WHERE active = true
+      ORDER BY id
+    `);
+}
 
 const buttons =
   result.rows.map(
