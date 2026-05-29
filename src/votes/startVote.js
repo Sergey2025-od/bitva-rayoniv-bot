@@ -54,29 +54,64 @@ async (ctx) => {
     );
   }
 
-  //
-  // DISTRICTS
-  //
+  if (
+  poll.poll_type ===
+  "custom"
+) {
+
   const result =
-    await pool.query(`
+    await pool.query(
+      `
       SELECT *
-      FROM districts
-      WHERE active = true
+      FROM poll_options
+      WHERE poll_id = $1
       ORDER BY id
-    `);
+      `,
+      [poll.id]
+    );
 
   const buttons =
     result.rows.map(
-      (district) => [
+      (option) => [
         Markup.button.callback(
-          `${district.emoji} ${district.name}`,
-          `vote_${district.code}`
+          `🔹 ${option.title}`,
+          `option_${option.id}`
         ),
       ]
     );
 
-  await ctx.reply(
-    "🏆 Оберіть район для голосування:",
+  return ctx.reply(
+    "🏆 Оберіть варіант:",
+    Markup.inlineKeyboard(
+      buttons
+    )
+  );
+}
+
+const result =
+  await pool.query(`
+    SELECT *
+    FROM districts
+    WHERE active = true
+    ORDER BY id
+  `);
+
+const buttons =
+  result.rows.map(
+    (district) => [
+      Markup.button.callback(
+        `${district.emoji} ${district.name}`,
+        `vote_${district.code}`
+      ),
+    ]
+  );
+
+await ctx.reply(
+  "🏆 Оберіть район для голосування:",
+  Markup.inlineKeyboard(
+    buttons
+  )
+);
 
     Markup.inlineKeyboard(
       buttons
@@ -126,29 +161,64 @@ async (ctx, next) => {
     );
   }
 
-  //
-  // DISTRICTS
-  //
+  if (
+  poll.poll_type ===
+  "custom"
+) {
+
   const result =
-    await pool.query(`
+    await pool.query(
+      `
       SELECT *
-      FROM districts
-      WHERE active = true
+      FROM poll_options
+      WHERE poll_id = $1
       ORDER BY id
-    `);
+      `,
+      [poll.id]
+    );
 
   const buttons =
     result.rows.map(
-      (district) => [
+      (option) => [
         Markup.button.callback(
-          `${district.emoji} ${district.name}`,
-          `vote_${district.code}`
+          `🔹 ${option.title}`,
+          `option_${option.id}`
         ),
       ]
     );
 
-  await ctx.reply(
-    "🏆 Оберіть район для голосування:",
+  return ctx.reply(
+    "🏆 Оберіть варіант:",
+    Markup.inlineKeyboard(
+      buttons
+    )
+  );
+}
+
+const result =
+  await pool.query(`
+    SELECT *
+    FROM districts
+    WHERE active = true
+    ORDER BY id
+  `);
+
+const buttons =
+  result.rows.map(
+    (district) => [
+      Markup.button.callback(
+        `${district.emoji} ${district.name}`,
+        `vote_${district.code}`
+      ),
+    ]
+  );
+
+await ctx.reply(
+  "🏆 Оберіть район для голосування:",
+  Markup.inlineKeyboard(
+    buttons
+  )
+);
 
     Markup.inlineKeyboard(
       buttons
