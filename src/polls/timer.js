@@ -22,6 +22,10 @@ module.exports = (
           `);
         const poll =
           pollResult.rows[0];
+        console.log(
+  "AUTO TIMER",
+  poll
+);
         if (!poll) {
           return;
         }
