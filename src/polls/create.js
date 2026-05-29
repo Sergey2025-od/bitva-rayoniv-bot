@@ -429,29 +429,35 @@ if (
           await pool.query(
             `
             INSERT INTO polls (
-              title,
-              message_id,
-              is_active,
-              end_time,
-              photo_file_id,
-              message_type
-            )
-            VALUES (
-              $1,
-              $2,
-              true,
-              $3,
-              $4,
-              $5
-            )
+  title,
+  message_id,
+  is_active,
+  end_time,
+  photo_file_id,
+  message_type,
+  poll_type,
+  vote_type
+)
+VALUES (
+  $1,
+  $2,
+  true,
+  $3,
+  $4,
+  $5,
+  $6,
+  $7
+)
             `,
             [
-              state.title,
-              message.message_id,
-              endTime,
-              state.photoFileId,
-              "photo"
-            ]
+  state.title,
+  message.message_id,
+  endTime,
+  state.photoFileId,
+  "photo",
+  state.pollType,
+  state.voteType
+]
           );
 
           delete userStates[
