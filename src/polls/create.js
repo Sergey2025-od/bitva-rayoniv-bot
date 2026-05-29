@@ -302,6 +302,15 @@ if (
           state.step ===
           "minutes"
         ) {
+          console.log(
+  "POLL TYPE:",
+  state.pollType
+);
+
+console.log(
+  "OPTIONS:",
+  state.options
+);
 
           const minutes =
             Number(
