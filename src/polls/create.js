@@ -177,7 +177,66 @@ if (
       "✏️ Введіть варіанти голосування\n\nКожен варіант з нового рядка"
     );
   }
+//
+// OPTIONS
+//
+if (
+  state.step ===
+  "options"
+) {
 
+  const options =
+    ctx.message.text
+      .split("\n")
+      .map(
+        (x) => x.trim()
+      )
+      .filter(Boolean);
+
+  if (
+    options.length < 2
+  ) {
+
+    return ctx.reply(
+      "❌ Мінімум 2 варіанти"
+    );
+  }
+
+  state.options =
+    options;
+
+  state.step =
+    "voteType";
+
+  return ctx.reply(
+    "📊 Тип голосування",
+    {
+      reply_markup: {
+        inline_keyboard: [
+
+          [
+            {
+              text:
+                "💸 Донатне",
+              callback_data:
+                "vote_type_donate"
+            }
+          ],
+
+          [
+            {
+              text:
+                "🆓 Безкоштовне",
+              callback_data:
+                "vote_type_free"
+            }
+          ]
+
+        ]
+      }
+    }
+  );
+}
   //
   // DISTRICT POLL
   //
