@@ -6,6 +6,9 @@ module.exports = (
   userStates
 ) => {
 
+  //
+  // START CREATE
+  //
   bot.action(
     "admin_create_poll",
     async (ctx) => {
@@ -14,15 +17,61 @@ module.exports = (
         ctx.from.id
       ] = {
         creatingPoll: true,
-        step: "title",
+        step: "photo",
       };
 
       await ctx.reply(
-        "📝 Введіть назву голосування"
+        "📸 Надішліть фото для голосування"
       );
     }
   );
 
+  //
+  // PHOTO
+  //
+  bot.on(
+    "photo",
+    async (ctx, next) => {
+
+      try {
+
+        const state =
+          userStates[
+            ctx.from.id
+          ];
+
+        if (
+          !state?.creatingPoll ||
+          state.step !== "photo"
+        ) {
+          return next();
+        }
+
+        const photo =
+          ctx.message.photo[
+            ctx.message.photo.length - 1
+          ];
+
+        state.photoFileId =
+          photo.file_id;
+
+        state.step =
+          "title";
+
+        await ctx.reply(
+          "📝 Введіть назву голосування"
+        );
+
+      } catch (error) {
+
+        console.log(error);
+      }
+    }
+  );
+
+  //
+  // TEXT
+  //
   bot.on(
     "text",
     async (ctx, next) => {
@@ -80,7 +129,7 @@ module.exports = (
           }
 
           //
-          // CLOSE OLD
+          // CLOSE OLD POLL
           //
           await pool.query(`
             UPDATE polls
@@ -119,7 +168,7 @@ module.exports = (
             `);
 
           //
-          // BUILD TEXT
+          // TEXT
           //
           let text =
             `🏆 ${state.title}\n\n`;
@@ -145,10 +194,7 @@ module.exports = (
           const message =
             await bot.telegram.sendPhoto(
               process.env.CHANNEL_ID,
-              {
-                source:
-                  "./assets/Vote.png"
-              },
+              state.photoFileId,
               {
                 caption: text,
 
@@ -177,19 +223,25 @@ module.exports = (
               title,
               message_id,
               is_active,
-              end_time
+              end_time,
+              photo_file_id,
+              message_type
             )
             VALUES (
               $1,
               $2,
               true,
-              $3
+              $3,
+              $4,
+              $5
             )
             `,
             [
               state.title,
               message.message_id,
               endTime,
+              state.photoFileId,
+              "photo"
             ]
           );
 
