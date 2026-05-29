@@ -339,5 +339,154 @@ async (ctx) => {
 
 
 );
+//
+// CUSTOM OPTION VOTE
+//
+bot.action(
+  /^option_(\d+)$/,
+  async (ctx) => {
 
+    try {
+
+      const optionId =
+        Number(
+          ctx.match[1]
+        );
+
+      //
+      // ACTIVE POLL
+      //
+      const pollResult =
+        await pool.query(`
+          SELECT *
+          FROM polls
+          WHERE is_active = true
+          ORDER BY id DESC
+          LIMIT 1
+        `);
+
+      const poll =
+        pollResult.rows[0];
+
+      if (!poll) {
+
+        return ctx.answerCbQuery(
+          "Голосування завершено"
+        );
+      }
+
+      //
+      // ALREADY VOTED
+      //
+      const votedResult =
+        await pool.query(
+          `
+          SELECT id
+          FROM votes
+          WHERE
+            user_id = $1
+            AND poll_id = $2
+          LIMIT 1
+          `,
+          [
+            ctx.from.id,
+            poll.id
+          ]
+        );
+
+      if (
+        votedResult.rows.length
+      ) {
+
+        return ctx.answerCbQuery(
+          "❌ Ви вже голосували"
+        );
+      }
+
+      //
+      // OPTION
+      //
+      const optionResult =
+        await pool.query(
+          `
+          SELECT *
+          FROM poll_options
+          WHERE id = $1
+          LIMIT 1
+          `,
+          [optionId]
+        );
+
+      const option =
+        optionResult.rows[0];
+
+      if (!option) {
+
+        return ctx.answerCbQuery(
+          "Варіант не знайдено"
+        );
+      }
+
+      //
+      // SAVE VOTE
+      //
+      await pool.query(
+        `
+        INSERT INTO votes (
+          user_id,
+          username,
+          district,
+          amount,
+          status,
+          option_code,
+          poll_id
+        )
+        VALUES (
+          $1,
+          $2,
+          '',
+          1,
+          'approved',
+          $3,
+          $4
+        )
+        `,
+        [
+          ctx.from.id,
+          ctx.from.username || "",
+          option.code,
+          poll.id
+        ]
+      );
+
+      //
+      // INCREMENT
+      //
+      await pool.query(
+        `
+        UPDATE poll_options
+        SET votes = votes + 1
+        WHERE id = $1
+        `,
+        [optionId]
+      );
+
+      await ctx.answerCbQuery(
+        "✅ Ваш голос зараховано"
+      );
+
+      await ctx.reply(
+        `✅ Ви проголосували за:\n\n🔹 ${option.title}`
+      );
+
+    } catch (error) {
+
+      console.log(error);
+
+      await ctx.answerCbQuery(
+        "Помилка голосування"
+      );
+    }
+  }
+);
 };
