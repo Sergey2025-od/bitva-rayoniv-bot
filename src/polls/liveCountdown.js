@@ -68,42 +68,66 @@ console.log(
   poll
 );
         //
-        // DISTRICTS
-        //
-        const districtsResult =
-          await pool.query(`
-            SELECT *
-            FROM districts
-            WHERE active = true
-            ORDER BY id
-          `);
+// BUILD TEXT
+//
+let text =
+  `🏆 ${poll.title}\n\n`;
 
-        //
-        // BUILD TEXT
-        //
-        let text =
-          `🏆 ${poll.title}\n\n`;
+if (
+  poll.poll_type ===
+  "custom"
+) {
 
-        districtsResult.rows.forEach(
-          (district) => {
+  const optionsResult =
+    await pool.query(
+      `
+      SELECT *
+      FROM poll_options
+      WHERE poll_id = $1
+      ORDER BY id
+      `,
+      [poll.id]
+    );
 
-            const row =
-              totalsResult.rows.find(
-                (r) =>
-                  r.district ===
-                  district.code
-              );
+  optionsResult.rows.forEach(
+    (option) => {
 
-            const total =
-              row
-                ? row.total
-                : 0;
+      text +=
+        `🏆 ${option.option_text} — 0\n`;
+    }
+  );
 
-            text +=
-              `${district.emoji} ` +
-              `${district.name} — ${total}\n`;
-          }
+} else {
+
+  const districtsResult =
+    await pool.query(`
+      SELECT *
+      FROM districts
+      WHERE active = true
+      ORDER BY id
+    `);
+
+  districtsResult.rows.forEach(
+    (district) => {
+
+      const row =
+        totalsResult.rows.find(
+          (r) =>
+            r.district ===
+            district.code
         );
+
+      const total =
+        row
+          ? row.total
+          : 0;
+
+      text +=
+        `${district.emoji} ` +
+        `${district.name} — ${total}\n`;
+    }
+  );
+}
 
         text +=
           `\n\n⏱️ Залишилось: ` +
