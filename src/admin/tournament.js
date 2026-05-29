@@ -287,12 +287,13 @@ module.exports = (
   tournament_districts
 )
             VALUES (
-              $1,
-              $2,
-              true,
-              $3,
-              $4
-            )
+  $1,
+  $2,
+  true,
+  $3,
+  $4,
+  $5
+)
             `,
             [
   state.title,
