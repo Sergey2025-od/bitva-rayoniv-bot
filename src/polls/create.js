@@ -89,9 +89,7 @@ bot.action(
   //
   // START CREATE
   //
-  bot.action(
-    "admin_create_poll",
-    async (ctx) => {
+ 
 
       userStates[
         ctx.from.id
