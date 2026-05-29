@@ -71,14 +71,16 @@ async (ctx) => {
     );
 
   const buttons =
-    result.rows.map(
-      (option) => [
-        Markup.button.callback(
-          `🔹 ${option.title}`,
-          `option_${option.id}`
-        ),
-      ]
-    );
+  result.rows.map(
+    (option) => [
+      Markup.button.callback(
+        `🔹 ${option.title}`,
+        poll.vote_type === "donate"
+          ? `donate_option_${option.id}`
+          : `option_${option.id}`
+      ),
+    ]
+  );
 
   return ctx.reply(
     "🏆 Оберіть варіант:",
@@ -175,14 +177,16 @@ async (ctx, next) => {
     );
 
   const buttons =
-    result.rows.map(
-      (option) => [
-        Markup.button.callback(
-          `🔹 ${option.title}`,
-          `option_${option.id}`
-        ),
-      ]
-    );
+  result.rows.map(
+    (option) => [
+      Markup.button.callback(
+        `🔹 ${option.title}`,
+        poll.vote_type === "donate"
+          ? `donate_option_${option.id}`
+          : `option_${option.id}`
+      ),
+    ]
+  );
 
   return ctx.reply(
     "🏆 Оберіть варіант:",
@@ -487,6 +491,44 @@ bot.action(
         "Помилка голосування"
       );
     }
+   }
+);
+
+//
+// CUSTOM DONATE OPTION
+//
+bot.action(
+  /^donate_option_(\d+)$/,
+  async (ctx) => {
+
+    try {
+
+      await ctx.reply(
+        "Оберіть спосіб голосування 👇",
+        {
+          reply_markup: {
+            inline_keyboard: [
+
+              [
+                {
+                  text:
+                    "💳 Донат + коментар",
+
+                  callback_data:
+                    `vote_comment_option_${ctx.match[1]}`
+                }
+              ]
+
+            ]
+          }
+        }
+      );
+
+    } catch (error) {
+
+      console.log(error);
+    }
   }
 );
+
 };
