@@ -85,31 +85,58 @@ module.exports = (
         );
 
         //
-        // KEEP ORIGINAL POST
-        //
-        let text =
-          `🏆 ${poll.title}\n\n`;
+// KEEP ORIGINAL POST
+//
+let text =
+  `🏆 ${poll.title}\n\n`;
 
-        districtsResult.rows.forEach(
-          (district) => {
+if (
+  poll.poll_type ===
+  "custom"
+) {
 
-            const row =
-              totalsResult.rows.find(
-                (r) =>
-                  r.district ===
-                  district.code
-              );
+  const optionsResult =
+    await pool.query(
+      `
+      SELECT *
+      FROM poll_options
+      WHERE poll_id = $1
+      ORDER BY votes DESC, id
+      `,
+      [poll.id]
+    );
 
-            const total =
-              row
-                ? row.total
-                : 0;
+  optionsResult.rows.forEach(
+    (option) => {
 
-            text +=
-              `${district.emoji} ` +
-              `${district.name} — ${total}\n`;
-          }
+      text +=
+        `🔹 ${option.title} — ${option.votes}\n`;
+    }
+  );
+
+} else {
+
+  districtsResult.rows.forEach(
+    (district) => {
+
+      const row =
+        totalsResult.rows.find(
+          (r) =>
+            r.district ===
+            district.code
         );
+
+      const total =
+        row
+          ? row.total
+          : 0;
+
+      text +=
+        `${district.emoji} ` +
+        `${district.name} — ${total}\n`;
+    }
+  );
+}
 
         //
         // FINAL BLOCK
