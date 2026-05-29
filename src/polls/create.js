@@ -151,24 +151,95 @@ bot.action(
           return next();
         }
 
-        //
-        // TITLE
-        //
-        if (
-          state.step ===
-          "title"
-        ) {
+       //
+// TITLE
+//
+if (
+  state.step ===
+  "title"
+) {
 
-          state.title =
-            ctx.message.text;
+  state.title =
+    ctx.message.text;
 
-          state.step =
-            "minutes";
+  if (
+    state.pollType ===
+    "custom"
+  ) {
 
-          return ctx.reply(
-            "⏱ Введіть час у хвилинах"
-          );
-        }
+    state.step =
+      "options";
+
+    return ctx.reply(
+      "✏️ Введіть варіанти голосування\n\nКожен варіант з нового рядка"
+    );
+  }
+
+  state.step =
+    "minutes";
+
+  return ctx.reply(
+    "⏱ Введіть час у хвилинах"
+  );
+}
+
+//
+// OPTIONS
+//
+if (
+  state.step ===
+  "options"
+) {
+
+  const options =
+    ctx.message.text
+      .split("\n")
+      .map(
+        (x) => x.trim()
+      )
+      .filter(Boolean);
+
+  if (
+    options.length < 2
+  ) {
+
+    return ctx.reply(
+      "❌ Мінімум 2 варіанти"
+    );
+  }
+
+  state.options =
+    options;
+
+  state.step =
+    "voteType";
+
+  return ctx.reply(
+    "📊 Тип голосування",
+    {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text:
+                "💸 Донатне",
+              callback_data:
+                "vote_type_donate"
+            }
+          ],
+          [
+            {
+              text:
+                "🆓 Безкоштовне",
+              callback_data:
+                "vote_type_free"
+            }
+          ]
+        ]
+      }
+    }
+  );
+}
 
         //
         // MINUTES
