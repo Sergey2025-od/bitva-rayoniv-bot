@@ -134,8 +134,14 @@ if (
 
           `${leftMinutes} хв`;
 
-        text +=
-          `\n\n💸 1 грн = 1 голос`;
+        if (
+  poll.vote_type ===
+  "donate"
+) {
+
+  text +=
+    `\n\n💸 1 грн = 1 голос`;
+}
 
         //
         // UPDATE PHOTO CAPTION
