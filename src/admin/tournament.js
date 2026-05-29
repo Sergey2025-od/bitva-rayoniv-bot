@@ -279,12 +279,13 @@ module.exports = (
           await pool.query(
             `
             INSERT INTO polls (
-              title,
-              message_id,
-              is_active,
-              end_time,
-              tournament_stage
-            )
+  title,
+  message_id,
+  is_active,
+  end_time,
+  tournament_stage,
+  tournament_districts
+)
             VALUES (
               $1,
               $2,
@@ -294,11 +295,12 @@ module.exports = (
             )
             `,
             [
-              state.title,
-              message.message_id.toString(),
-              endTime,
-              state.stage,
-            ]
+  state.title,
+  message.message_id.toString(),
+  endTime,
+  state.stage,
+  state.districts.join(",")
+]
           );
 
           //
