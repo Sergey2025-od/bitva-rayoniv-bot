@@ -426,43 +426,85 @@ if (
           //
           // SAVE POLL
           //
-          await pool.query(
-            `
-            INSERT INTO polls (
-  title,
-  message_id,
-  is_active,
-  end_time,
-  photo_file_id,
-  message_type,
-  poll_type,
-  vote_type
-)
-VALUES (
-  $1,
-  $2,
-  true,
-  $3,
-  $4,
-  $5,
-  $6,
-  $7
-)
-            `,
-            [
-  state.title,
-  message.message_id,
-  endTime,
-  state.photoFileId,
-  "photo",
-  state.pollType,
-  state.voteType
-]
-          );
+          const pollResult =
+  await pool.query(
+    `
+    INSERT INTO polls (
+      title,
+      message_id,
+      is_active,
+      end_time,
+      photo_file_id,
+      message_type,
+      poll_type,
+      vote_type
+    )
+    VALUES (
+      $1,
+      $2,
+      true,
+      $3,
+      $4,
+      $5,
+      $6,
+      $7
+    )
+    RETURNING *
+    `,
+    [
+      state.title,
+      message.message_id,
+      endTime,
+      state.photoFileId,
+      "photo",
+      state.pollType,
+      state.voteType
+    ]
+  );
 
-          delete userStates[
-            ctx.from.id
-          ];
+const poll =
+  pollResult.rows[0];
+
+if (
+  state.pollType ===
+  "custom"
+) {
+
+  for (
+    let i = 0;
+    i < state.options.length;
+    i++
+  ) {
+
+    await pool.query(
+      `
+      INSERT INTO poll_options (
+        poll_id,
+        code,
+        title,
+        votes,
+        emoji
+      )
+      VALUES (
+        $1,
+        $2,
+        $3,
+        0,
+        '🏆'
+      )
+      `,
+      [
+        poll.id,
+        `option_${i + 1}`,
+        state.options[i]
+      ]
+    );
+  }
+}
+
+delete userStates[
+  ctx.from.id
+];
 
           await ctx.reply(
             "✅ Голосування створено"
