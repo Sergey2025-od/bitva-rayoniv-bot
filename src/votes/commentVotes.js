@@ -51,7 +51,7 @@ await ctx.reply(
 
   `⚠️ У коментарі до платежу напишіть:\n\n` +
 
-  `${option.code}\n\n` +
+`${option.title}\n\n` +
 
   `💸 1 грн = 1 голос`,
 
