@@ -74,7 +74,7 @@ async (ctx) => {
   result.rows.map(
     (option) => [
       Markup.button.callback(
-        `🔹 ${option.title}`,
+  `◀️ ${option.title} ▶️`,
         poll.vote_type === "donate"
           ? `donate_option_${option.id}`
           : `option_${option.id}`
@@ -180,7 +180,7 @@ async (ctx, next) => {
   result.rows.map(
     (option) => [
       Markup.button.callback(
-        `🔹 ${option.title}`,
+  `◀️ ${option.title} ▶️`,
         poll.vote_type === "donate"
           ? `donate_option_${option.id}`
           : `option_${option.id}`
