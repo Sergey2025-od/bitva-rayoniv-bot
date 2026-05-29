@@ -82,7 +82,7 @@ console.log(
 //
 // CUSTOM POLL
 //
-const pollResult =
+const customPollResult =
   await pool.query(`
     SELECT *
     FROM polls
@@ -91,12 +91,12 @@ const pollResult =
     LIMIT 1
   `);
 
-const poll =
-  pollResult.rows[0];
+const customPoll =
+  customPollResult.rows[0];
 
 if (
-  poll &&
-  poll.poll_type === "custom"
+  customPoll &&
+  customPoll.poll_type === "custom"
 ) {
 
   const optionsResult =
@@ -106,7 +106,7 @@ if (
       FROM poll_options
       WHERE poll_id = $1
       `,
-      [poll.id]
+      [customPoll.id]
     );
 
   let matchedOption =
