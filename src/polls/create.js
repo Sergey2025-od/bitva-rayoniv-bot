@@ -86,7 +86,61 @@ bot.action(
   }
 );
 
- 
+//
+// DONATE POLL
+//
+bot.action(
+  "vote_type_donate",
+  async (ctx) => {
+
+    const state =
+      userStates[
+        ctx.from.id
+      ];
+
+    if (!state) {
+      return;
+    }
+
+    state.voteType =
+      "donate";
+
+    state.step =
+      "minutes";
+
+    await ctx.reply(
+      "⏱ Введіть час у хвилинах"
+    );
+  }
+);
+
+//
+// FREE POLL
+//
+bot.action(
+  "vote_type_free",
+  async (ctx) => {
+
+    const state =
+      userStates[
+        ctx.from.id
+      ];
+
+    if (!state) {
+      return;
+    }
+
+    state.voteType =
+      "free";
+
+    state.step =
+      "minutes";
+
+    await ctx.reply(
+      "⏱ Введіть час у хвилинах"
+    );
+  }
+); 
 
   //
   // PHOTO
