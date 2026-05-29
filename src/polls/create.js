@@ -5,6 +5,86 @@ module.exports = (
   bot,
   userStates
 ) => {
+  //
+// POLL TYPE
+//
+bot.action(
+  "admin_poll_type",
+  async (ctx) => {
+
+    await ctx.reply(
+      "📊 Оберіть тип голосування",
+      {
+        reply_markup: {
+          inline_keyboard: [
+
+            [
+              {
+                text:
+                  "🏘 Битва районів",
+                callback_data:
+                  "create_district_poll"
+              }
+            ],
+
+            [
+              {
+                text:
+                  "📝 Власне голосування",
+                callback_data:
+                  "create_custom_poll"
+              }
+            ]
+
+          ]
+        }
+      }
+    );
+
+  }
+);
+
+//
+// DISTRICT POLL
+//
+bot.action(
+  "create_district_poll",
+  async (ctx) => {
+
+    userStates[
+      ctx.from.id
+    ] = {
+      creatingPoll: true,
+      pollType: "district",
+      step: "photo",
+    };
+
+    await ctx.reply(
+      "📸 Надішліть фото для голосування"
+    );
+  }
+);
+
+//
+// CUSTOM POLL
+//
+bot.action(
+  "create_custom_poll",
+  async (ctx) => {
+
+    userStates[
+      ctx.from.id
+    ] = {
+      creatingPoll: true,
+      pollType: "custom",
+      step: "photo",
+    };
+
+    await ctx.reply(
+      "📸 Надішліть фото для голосування"
+    );
+  }
+);
 
   //
   // START CREATE
