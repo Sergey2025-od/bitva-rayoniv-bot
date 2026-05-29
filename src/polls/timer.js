@@ -233,23 +233,7 @@ module.exports = (
             `\n❤️ Дякуємо всім за участь у битві за свій район`;
         }
 
-        await bot.telegram.editMessageCaption(
-          process.env.CHANNEL_ID,
-          Number(
-            poll.message_id
-          ),
-          null,
-          text,
-          {
-            reply_markup: {
-              inline_keyboard: []
-            }
-          }
-        );
-
-        console.log(
-          "🏁 POLL AUTO FINISHED"
-        );
+        
 
       } catch (error) {
 
