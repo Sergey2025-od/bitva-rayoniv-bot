@@ -261,10 +261,6 @@ await pool.query(
   ]
 );
 
-await updateLeaderboard(
-  bot
-);
-
 delete userStates[
   ctx.from.id
 ];
@@ -272,6 +268,20 @@ delete userStates[
 await ctx.reply(
   "✅ Голоси додано"
 );
+
+try {
+
+  await updateLeaderboard(
+    bot
+  );
+
+} catch (error) {
+
+  console.log(
+    "LEADERBOARD ERROR",
+    error
+  );
+}
 
 
 } catch (error) {
