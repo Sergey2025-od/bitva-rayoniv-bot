@@ -104,7 +104,15 @@ async () => {
     );
 
     let text =
-      `🏆 ${poll.title}\n\n`;
+  `🏆 ${poll.title}\n\n`;
+
+if (
+  poll.tournament_stage
+) {
+
+  text +=
+    `🏁 ${poll.tournament_stage} фіналу\n\n`;
+}
 
     if (
       poll.poll_type ===
