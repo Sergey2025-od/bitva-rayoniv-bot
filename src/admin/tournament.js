@@ -85,20 +85,34 @@ module.exports = (
         // TITLE
         //
         if (
-          state.step ===
-          "title"
-        ) {
+  state.step ===
+  "title"
+) {
 
-          state.title =
-            ctx.message.text;
+  state.title =
+    ctx.message.text;
 
-          state.step =
-            "minutes";
+  state.step =
+    "photo";
 
-          return ctx.reply(
-            "⏱ Введіть час у хвилинах"
-          );
-        }
+  return ctx.reply(
+    "📸 Надішліть фото для турніру або натисніть кнопку нижче",
+    {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text:
+                "⏭ Пропустити фото",
+              callback_data:
+                "skip_tournament_photo"
+            }
+          ]
+        ]
+      }
+    }
+  );
+}
 
         //
         // MINUTES
