@@ -4,6 +4,9 @@ const bodyParser = require("body-parser");
 const pool = require("./database/db");
 
 const app = express();
+app.get("/", (req, res) => {
+  res.status(200).send("Bot is alive");
+});
 
 app.use(bodyParser.json());
 
