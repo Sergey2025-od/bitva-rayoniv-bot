@@ -218,9 +218,16 @@ if (
 
   } catch (error) {
 
-    console.log(error);
+  if (
+    error?.response?.description?.includes(
+      "message is not modified"
+    )
+  ) {
+    return;
   }
 
+  console.log(error);
+}
 },
 15000
 
