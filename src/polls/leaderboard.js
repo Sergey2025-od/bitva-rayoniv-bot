@@ -69,14 +69,23 @@ let leaderboard =
 `🏆 ${poll.title}\n\n`;
 
 if (
-poll.tournament_stage
+  poll.tournament_stage
 ) {
 
+  if (
+    poll.tournament_stage
+      .toLowerCase() ===
+    "фінал"
+  ) {
 
-leaderboard +=
-  `🏁 ${poll.tournament_stage} фіналу\n\n`;
+    text +=
+      `🏁 Фінал\n\n`;
 
+  } else {
 
+    text +=
+      `🏁 ${poll.tournament_stage} фіналу\n\n`;
+  }
 }
 
 for (
