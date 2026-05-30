@@ -65,8 +65,20 @@ if (
   poll.tournament_stage
 ) {
 
-  text +=
-    `🏁 ${poll.tournament_stage} фіналу\n\n`;
+  if (
+    poll.tournament_stage
+      .toLowerCase() ===
+    "фінал"
+  ) {
+
+    text +=
+      `🏁 Фінал\n\n`;
+
+  } else {
+
+    text +=
+      `🏁 ${poll.tournament_stage} фіналу\n\n`;
+  }
 }
 
     if (
