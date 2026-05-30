@@ -222,49 +222,88 @@ if (
     } else {
 
       if (
+  poll.tournament_stage &&
+  poll.tournament_stage
+    .toLowerCase() ===
+  "фінал"
+) {
+
+  if (
+    totalsResult.rows[0]
+  ) {
+
+    const winner =
+      map[
         totalsResult.rows[0]
-      ) {
+          .district
+      ];
 
-        const winner =
-          map[
-            totalsResult.rows[0]
-              .district
-          ];
+    if (winner) {
 
-        text +=
-          `\n🥇 Переможець\n` +
-          `${winner.emoji} ${winner.name} — ${totalsResult.rows[0].total} голосів\n`;
-      }
+      text +=
+        `\n🏆 ЧЕМПІОН ТУРНІРУ\n\n` +
+        `${winner.emoji} ${winner.name}\n` +
+        `💪 ${totalsResult.rows[0].total} голосів\n\n` +
+        `🎉 Вітаємо переможця!\n`;
+    }
+  }
 
-      if (
+} else {
+
+  if (
+    totalsResult.rows[0]
+  ) {
+
+    const winner =
+      map[
+        totalsResult.rows[0]
+          .district
+      ];
+
+    if (winner) {
+
+      text +=
+        `\n🥇 Переможець\n` +
+        `${winner.emoji} ${winner.name} — ${totalsResult.rows[0].total} голосів\n`;
+    }
+  }
+
+  if (
+    totalsResult.rows[1]
+  ) {
+
+    const second =
+      map[
         totalsResult.rows[1]
-      ) {
+          .district
+      ];
 
-        const second =
-          map[
-            totalsResult.rows[1]
-              .district
-          ];
+    if (second) {
 
-        text +=
-          `\n🥈 2 місце\n` +
-          `${second.emoji} ${second.name} — ${totalsResult.rows[1].total} голосів\n`;
-      }
+      text +=
+        `\n🥈 2 місце\n` +
+        `${second.emoji} ${second.name} — ${totalsResult.rows[1].total} голосів\n`;
+    }
+  }
 
-      if (
+  if (
+    totalsResult.rows[2]
+  ) {
+
+    const third =
+      map[
         totalsResult.rows[2]
-      ) {
+          .district
+      ];
 
-        const third =
-          map[
-            totalsResult.rows[2]
-              .district
-          ];
+    if (third) {
 
-        text +=
-          `\n🥉 3 місце\n` +
-          `${third.emoji} ${third.name} — ${totalsResult.rows[2].total} голосів\n`;
-      }
+      text +=
+        `\n🥉 3 місце\n` +
+        `${third.emoji} ${third.name} — ${totalsResult.rows[2].total} голосів\n`;
+    }
+  }
+}
 
       text +=
         `\n❤️ Дякуємо всім за участь у битві за свій район`;
