@@ -341,28 +341,58 @@ bot.on(
             `\n\n💸 1 грн = 1 голос`;
 
           //
-          // SEND POST
-          //
-          const message =
-            await bot.telegram.sendMessage(
-              process.env.CHANNEL_ID,
-              text,
-              {
-                reply_markup: {
-                  inline_keyboard: [
-                    [
-                      {
-                        text:
-                          "🗳 ПРОГОЛОСУВАТИ",
+// SEND POST
+//
+let message;
 
-                        url:
-                          "https://t.me/bitva_rayoniv_bot?start=vote"
-                      }
-                    ]
-                  ]
-                }
+if (
+  state.messageType ===
+  "photo"
+) {
+
+  message =
+    await bot.telegram.sendPhoto(
+      process.env.CHANNEL_ID,
+      state.photoFileId,
+      {
+        caption: text,
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text:
+                  "🗳 ПРОГОЛОСУВАТИ",
+                url:
+                  "https://t.me/bitva_rayoniv_bot?start=vote"
               }
-            );
+            ]
+          ]
+        }
+      }
+    );
+
+} else {
+
+  message =
+    await bot.telegram.sendMessage(
+      process.env.CHANNEL_ID,
+      text,
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text:
+                  "🗳 ПРОГОЛОСУВАТИ",
+                url:
+                  "https://t.me/bitva_rayoniv_bot?start=vote"
+              }
+            ]
+          ]
+        }
+      }
+    );
+}
 
           //
           // SAVE POLL
@@ -375,7 +405,9 @@ bot.on(
   is_active,
   end_time,
   tournament_stage,
-  tournament_districts
+  tournament_districts,
+  photo_file_id,
+  message_type
 )
             VALUES (
   $1,
@@ -383,7 +415,9 @@ bot.on(
   true,
   $3,
   $4,
-  $5
+  $5,
+  $6,
+  $7
 )
             `,
             [
@@ -391,7 +425,9 @@ bot.on(
   message.message_id.toString(),
   endTime,
   state.stage,
-  state.districts.join(",")
+  state.districts.join(","),
+  state.photoFileId || null,
+  state.messageType || "text"
 ]
           );
 
