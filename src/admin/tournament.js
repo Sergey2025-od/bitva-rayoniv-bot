@@ -35,7 +35,84 @@ module.exports = (
       );
     }
   );
+  //
+// SKIP TOURNAMENT PHOTO
+//
+bot.action(
+  "skip_tournament_photo",
+  async (ctx) => {
 
+    const state =
+      userStates[
+        ctx.from.id
+      ];
+
+    if (
+      !state?.creatingTournament
+    ) {
+      return;
+    }
+
+    state.messageType =
+      "text";
+
+    state.photoFileId =
+      null;
+
+    state.step =
+      "minutes";
+
+    await ctx.reply(
+      "⏱ Введіть час у хвилинах"
+    );
+  }
+);
+//
+// TOURNAMENT PHOTO
+//
+bot.on(
+  "photo",
+  async (ctx, next) => {
+
+    try {
+
+      const state =
+        userStates[
+          ctx.from.id
+        ];
+
+      if (
+        !state?.creatingTournament ||
+        state.step !==
+          "photo"
+      ) {
+        return next();
+      }
+
+      const photo =
+        ctx.message.photo[
+          ctx.message.photo.length - 1
+        ];
+
+      state.photoFileId =
+        photo.file_id;
+
+      state.messageType =
+        "photo";
+
+      state.step =
+        "minutes";
+
+      await ctx.reply(
+        "⏱ Введіть час у хвилинах"
+      );
+
+    } catch (error) {
+
+      console.log(error);
+    }
+  }
+);
   //
   // TOURNAMENT FLOW
   //
