@@ -98,42 +98,46 @@ async function buildResultsText(poll) {
 // Зі старого поста видаляє кнопку голосування.
 // ─────────────────────────────────────────────
 async function publishResults(bot, poll) {
-  // 1. Видаляємо старий пост і надсилаємо новий без кнопки
+  // 1. Редагуємо caption — прибираємо кнопку і дописуємо "Голосування завершено"
   if (poll.message_id) {
     const msgId = Number(poll.message_id);
     const channelId = process.env.CHANNEL_ID;
 
-    console.log(`🔧 Deleting old post message_id=${msgId}`);
+    console.log(`🔧 Editing caption message_id=${msgId}`);
 
     try {
-      if (poll.message_type === "photo" && poll.photo_file_id) {
-        // Видаляємо старий фото-пост
-        await bot.telegram.deleteMessage(channelId, msgId);
-        console.log("✅ Old photo post deleted");
+      // Беремо збережений caption, прибираємо рядок з таймером і дописуємо "завершено"
+      let caption = (poll.caption || poll.title || "")
+        .replace(/
+*⏱️ Залишилось:.*$/s, "")
+        .trimEnd();
 
-        // Надсилаємо те саме фото, але без кнопки і з позначкою "завершено"
-        const finishedCaption = (poll.caption || poll.title)
-          .replace(/⏱️ Залишилось:.*$/s, "")
-          .trimEnd() + "\n\n🏁 Голосування завершено";
+      caption += "\n\n🏁 Голосування завершено";
 
-        await bot.telegram.sendPhoto(
-          channelId,
-          poll.photo_file_id,
-          { caption: finishedCaption }
-        );
-        console.log("✅ New photo post sent without button");
-      } else {
-        // Для текстового поста — просто прибираємо кнопку
-        await bot.telegram.editMessageReplyMarkup(
-          channelId,
-          msgId,
-          null,
-          { inline_keyboard: [] }
-        );
-        console.log("✅ Vote button removed from text post");
-      }
+      await bot.telegram.editMessageCaption(
+        channelId,
+        msgId,
+        null,
+        caption,
+        { reply_markup: { inline_keyboard: [] } }
+      );
+
+      console.log("✅ Caption updated, button removed");
     } catch (err) {
-      console.log("❌ Could not remove button:", err.message);
+      console.log("❌ editMessageCaption failed:", err.message);
+
+      // Якщо не вдалось відредагувати — перевіряємо права бота в каналі
+      try {
+        const member = await bot.telegram.getChatMember(channelId, bot.botInfo.id);
+        console.log("🔍 Bot role in channel:", member.status);
+        console.log("🔍 can_edit_messages:", member.can_edit_messages);
+        if (!member.can_edit_messages) {
+          console.log("❌ БОТ НЕ МАЄ ПРАВА 'Редагувати повідомлення' В КАНАЛІ!");
+          console.log("❌ Зайди: Налаштування каналу → Адміністратори → бот → увімкни 'Редагувати повідомлення'");
+        }
+      } catch (e) {
+        console.log("🔍 Could not check permissions:", e.message);
+      }
     }
   }
 
