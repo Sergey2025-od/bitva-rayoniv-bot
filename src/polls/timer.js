@@ -25,6 +25,8 @@ module.exports = (bot) => {
       // За 1 хвилину до кінця — прибираємо кнопку,
       // але голосування ще активне (Моно може прийти)
       // ─────────────────────────────────────────────
+      console.log(`⏱ TIMER: msLeft=${Math.round(msLeft/1000)}s button_removed=${poll.button_removed}`);
+
       if (msLeft > 0 && msLeft <= 90000 && !poll.button_removed) {
 
         await pool.query(`
