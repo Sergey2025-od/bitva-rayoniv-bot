@@ -25,7 +25,7 @@ module.exports = (bot) => {
       // За 1 хвилину до кінця — прибираємо кнопку,
       // але голосування ще активне (Моно може прийти)
       // ─────────────────────────────────────────────
-      if (msLeft > 0 && msLeft <= 120000 && !poll.button_removed) {
+      if (msLeft > 0 && msLeft <= 90000 && !poll.button_removed) {
 
         await pool.query(`
           UPDATE polls SET button_removed = true WHERE id = $1
@@ -35,13 +35,13 @@ module.exports = (bot) => {
 
         const leaderboard = await buildLeaderboardText(poll);
 
-        const minsLeft = Math.ceil(msLeft / 60000);
+        const minsLeft = 1;
         leaderboard += `\n\n⏱ Залишилось: менше ${minsLeft} хв`;
         leaderboard += `\n\n💸 1 грн = 1 голос`;
 
         await editPost(bot, poll, leaderboard, []); // кнопка прибрана
 
-        console.log("🔕 Кнопку прибрано за 2 хвилини до кінця");
+        console.log("🔕 Кнопку прибрано за 1.5 хвилини до кінця");
         return;
       }
 
