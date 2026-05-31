@@ -33,7 +33,7 @@ module.exports = (bot) => {
           UPDATE polls SET button_removed = true WHERE id = $1
         `, [poll.id]);
 
-        poll.button_removed = true; // щоб mono/leaderboard не повернули кнопку
+        // poll.button_removed вже true в БД, не потрібно переприсвоювати
 
         const leaderboard = await buildLeaderboardText(poll);
 
