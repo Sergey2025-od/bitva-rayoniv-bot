@@ -128,7 +128,14 @@ async function checkMonobank(bot) {
       if (text.includes("аванг") || text.includes("7 км") || text.includes("ленпас")) districtCode = "avangard";
       if (text.includes("крива") || text.includes("усат") || text.includes("неруб")) districtCode = "krivaya";
       if (text.includes("холод") || text.includes("дачн")) districtCode = "holodka";
-
+      if (text.includes("фонтан") || text.includes("16 фонт") || text.includes("13 фонт") || text.includes("малий фонт")) districtCode = "fontan";
+      if (text.includes("южик") || text.includes("южне") || text.includes("южний") || text.includes("чабанка") || text.includes("біляри") || text.includes("биляри")) districtCode = "yuzhnyi";
+      if (text.includes("маяки") || text.includes("біляївка") || text.includes("біляівка")) districtCode = "mayaky";
+      if (text.includes("тепліk") || text.includes("теплік") || text.includes("теплодар") || text.includes("мирне") || text.includes("мирное") || text.includes("вигода") || text.includes("выгода") || text.includes("петродолин")) districtCode = "teplodar";
+      if (text.includes("вєлік") || text.includes("дальник") || text.includes("хлібодарськ") || text.includes("хлебодарск")) districtCode = "dalnyk";
+      if (text.includes("іллічівськ") || text.includes("іліч") || text.includes("чорноморськ") || text.includes("чеорноморськ") || text.includes("олександрівка") || text.includes("молодіжне") || text.includes("великодолинськ") || text.includes("малодолинськ")) districtCode = "chornomorsk";
+      if (text.includes("овідіополь") || text.includes("кароліно") || text.includes("затока") || text.includes("барабой") || text.includes("грибівка") || text.includes("сан-жейка") || text.includes("сан жейка")) districtCode = "ovidiopol";
+      
       if (!districtCode) {
         console.log("❌ DISTRICT NOT FOUND");
         continue;
