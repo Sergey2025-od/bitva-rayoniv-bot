@@ -107,10 +107,10 @@ async function publishResults(bot, poll) {
 
     try {
       // Беремо збережений caption, прибираємо рядок з таймером і дописуємо "завершено"
-      let caption = (poll.caption || poll.title || "")
-        .replace(/
-*⏱️ Залишилось:.*$/s, "")
-        .trimEnd();
+      // Прибираємо рядок з таймером з caption
+      const rawCaption = poll.caption || poll.title || "";
+      const timerIdx = rawCaption.indexOf("\n⏱️ Залишилось:");
+      let caption = (timerIdx !== -1 ? rawCaption.slice(0, timerIdx) : rawCaption).trimEnd();
 
       caption += "\n\n🏁 Голосування завершено";
 
