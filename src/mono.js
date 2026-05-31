@@ -79,6 +79,51 @@ console.log(
         "💬 TX TEXT:",
         text
       );
+
+      //
+      // PENDING PAYMENT CODE MATCH (пріоритет — шукаємо унікальний код у коментарі)
+      //
+      const rawComment = (tx.comment || tx.description || "").trim();
+      const codeMatch = rawComment.match(/\b([a-z0-9]{1,10}_\d+_[a-f0-9]{6})\b/i);
+
+      if (codeMatch) {
+        const code = codeMatch[1].toLowerCase();
+        const pendingResult = await pool.query(
+          `SELECT * FROM pending_payments WHERE code = $1 AND expires_at > NOW() LIMIT 1`,
+          [code]
+        );
+        const pending = pendingResult.rows[0];
+
+        if (pending) {
+          const amount = Math.floor(tx.amount / 100);
+
+          if (pending.option_id) {
+            // Custom poll option
+            await pool.query(
+              `UPDATE poll_options SET votes = votes + $1 WHERE id = $2`,
+              [amount, pending.option_id]
+            );
+            console.log(`✅ PENDING CODE vote: option #${pending.option_id} +${amount}`);
+          } else if (pending.district) {
+            // District poll
+            await pool.query(
+              `INSERT INTO votes (user_id, username, district, amount, status, poll_id)
+               VALUES ($1, 'mono', $2, $3, 'approved', $4)`,
+              [pending.user_id, pending.district, amount, pending.poll_id]
+            );
+            console.log(`✅ PENDING CODE vote: district ${pending.district} +${amount}`);
+          }
+
+          // Видаляємо використаний код
+          await pool.query(`DELETE FROM pending_payments WHERE code = $1`, [code]);
+
+          // Оновлюємо лідерборд у каналі
+          await updateChannelLeaderboard(bot, pending.poll_id);
+
+          continue;
+        }
+      }
+
 //
 // CUSTOM POLL
 //
@@ -392,6 +437,80 @@ if (
       error.response?.data ||
       error.message
     );
+  }
+}
+
+// ─────────────────────────────────────────────
+// Оновлює лідерборд у каналі після голосу
+// ─────────────────────────────────────────────
+async function updateChannelLeaderboard(bot, pollId) {
+  try {
+    const pollResult = await pool.query(
+      `SELECT * FROM polls WHERE id = $1 LIMIT 1`,
+      [pollId]
+    );
+    const poll = pollResult.rows[0];
+    if (!poll || !poll.message_id) return;
+
+    let leaderboard = `🏆 ${poll.title}\n\n`;
+
+    if (poll.poll_type === "custom") {
+      const optionsResult = await pool.query(
+        `SELECT * FROM poll_options WHERE poll_id = $1 ORDER BY votes DESC, id`,
+        [poll.id]
+      );
+      optionsResult.rows.forEach((opt) => {
+        leaderboard += `▫️ ${opt.title} — ${opt.votes}\n`;
+      });
+    } else {
+      const totalsResult = await pool.query(`
+        SELECT district, SUM(amount) as total
+        FROM votes WHERE status = 'approved'
+        GROUP BY district
+      `);
+
+      let districtsResult;
+      if (poll.tournament_districts) {
+        districtsResult = await pool.query(
+          `SELECT * FROM districts WHERE code = ANY($1) ORDER BY id`,
+          [poll.tournament_districts.split(",")]
+        );
+      } else {
+        districtsResult = await pool.query(
+          `SELECT * FROM districts WHERE active = true ORDER BY id`
+        );
+      }
+
+      for (const district of districtsResult.rows) {
+        const row = totalsResult.rows.find((r) => r.district === district.code);
+        const total = row ? row.total : 0;
+        leaderboard += `${district.emoji} ${district.name} — ${total}\n`;
+      }
+    }
+
+    leaderboard += `\n💸 1 грн = 1 голос`;
+    leaderboard += `\n\n👇 Голосуйте через бота`;
+    leaderboard += `\nhttps://t.me/bitva_rayoniv_bot?start=vote`;
+
+    if (poll.message_type === "photo") {
+      await bot.telegram.editMessageCaption(
+        process.env.CHANNEL_ID,
+        Number(poll.message_id),
+        null,
+        leaderboard
+      );
+    } else {
+      await bot.telegram.editMessageText(
+        process.env.CHANNEL_ID,
+        Number(poll.message_id),
+        null,
+        leaderboard
+      );
+    }
+
+    console.log("✅ LEADERBOARD UPDATED (pending code)");
+  } catch (err) {
+    console.log("⚠️ updateChannelLeaderboard error:", err.message);
   }
 }
 
