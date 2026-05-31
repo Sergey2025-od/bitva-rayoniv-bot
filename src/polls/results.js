@@ -16,11 +16,11 @@ async function buildResultsText(poll) {
     const rows = optionsResult.rows;
 
     let text = `🏆 ${poll.title}\n\n`;
-    text += `🏁 Голосування завершено\n\n`;
-    text += `📊 Фінальні результати:\n\n`;
+    text += `🏁 Голосування завершено!\n\n`;
 
-    rows.forEach((option, i) => {
-      const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : "▫️";
+    const top3 = rows.slice(0, 3);
+    top3.forEach((option, i) => {
+      const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉";
       text += `${medal} ${option.title} — ${option.votes} голосів\n`;
     });
 
@@ -67,17 +67,7 @@ async function buildResultsText(poll) {
       : `🏁 ${poll.tournament_stage} фіналу\n\n`;
   }
 
-  text += `🏁 Голосування завершено\n\n`;
-  text += `📊 Фінальні результати:\n\n`;
-
-  // Всі райони з балами
-  districtsResult.rows.forEach((district) => {
-    const row = totalsResult.rows.find((r) => r.district === district.code);
-    const total = row ? row.total : 0;
-    text += `${district.emoji} ${district.name} — ${total} голосів\n`;
-  });
-
-  text += "\n";
+  text += `🏁 Голосування завершено!\n\n`;
 
   // Топ переможців
   if (poll.tournament_stage && poll.tournament_stage.toLowerCase() === "фінал") {
@@ -105,9 +95,34 @@ async function buildResultsText(poll) {
 
 // ─────────────────────────────────────────────
 // Надсилає НОВИЙ пост з результатами у канал.
-// Оригінальний пост не чіпаємо.
+// Зі старого поста видаляє кнопку голосування.
 // ─────────────────────────────────────────────
 async function publishResults(bot, poll) {
+  // 1. Прибираємо кнопку "Проголосувати" зі старого поста
+  if (poll.message_id) {
+    try {
+      if (poll.message_type === "photo") {
+        await bot.telegram.editMessageReplyMarkup(
+          process.env.CHANNEL_ID,
+          Number(poll.message_id),
+          null,
+          { inline_keyboard: [] }
+        );
+      } else {
+        await bot.telegram.editMessageReplyMarkup(
+          process.env.CHANNEL_ID,
+          Number(poll.message_id),
+          null,
+          { inline_keyboard: [] }
+        );
+      }
+      console.log("✅ Vote button removed from old post");
+    } catch (err) {
+      console.log("⚠️ Could not remove vote button:", err.message);
+    }
+  }
+
+  // 2. Публікуємо новий пост з результатами
   const resultsText = await buildResultsText(poll);
 
   await bot.telegram.sendMessage(
