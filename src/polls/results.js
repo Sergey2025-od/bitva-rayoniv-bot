@@ -100,30 +100,47 @@ async function buildResultsText(poll) {
 async function publishResults(bot, poll) {
   // 1. Прибираємо кнопку "Проголосувати" зі старого поста
   if (poll.message_id) {
+    const msgId = Number(poll.message_id);
+    const channelId = process.env.CHANNEL_ID;
+
+    console.log(`🔧 Removing button from message_id=${msgId}, type=${poll.message_type}, channel=${channelId}`);
+
     try {
       if (poll.message_type === "photo") {
-        // Для фото-повідомлень editMessageReplyMarkup не працює —
-        // потрібно editMessageCaption зі збереженням тексту і порожнім reply_markup
-        // Для фото: оновлюємо caption на "🏁 Голосування завершено" і прибираємо кнопку
+        // Фото-пост: editMessageCaption прибирає кнопку і замінює текст
         await bot.telegram.editMessageCaption(
-          process.env.CHANNEL_ID,
-          Number(poll.message_id),
+          channelId,
+          msgId,
           null,
           `🏁 ${poll.title}\n\nГолосування завершено. Результати у наступному повідомленні 👇`,
           { reply_markup: { inline_keyboard: [] } }
         );
         console.log("✅ Vote button removed from photo post");
       } else {
+        // Текстовий пост: editMessageReplyMarkup
         await bot.telegram.editMessageReplyMarkup(
-          process.env.CHANNEL_ID,
-          Number(poll.message_id),
+          channelId,
+          msgId,
           null,
           { inline_keyboard: [] }
         );
         console.log("✅ Vote button removed from text post");
       }
     } catch (err) {
-      console.log("⚠️ Could not remove vote button:", err.message);
+      console.log("⚠️ First attempt failed:", err.message);
+      // Запасний варіант — спробувати editMessageReplyMarkup незалежно від типу
+      try {
+        await bot.telegram.editMessageReplyMarkup(
+          channelId,
+          msgId,
+          null,
+          { inline_keyboard: [] }
+        );
+        console.log("✅ Vote button removed (fallback)");
+      } catch (err2) {
+        console.log("❌ Both attempts failed:", err2.message);
+        console.log("❌ Check: is bot an admin in channel with 'Edit messages' permission?");
+      }
     }
   }
 
