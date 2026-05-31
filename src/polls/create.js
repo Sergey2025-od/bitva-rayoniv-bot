@@ -437,7 +437,8 @@ if (
       photo_file_id,
       message_type,
       poll_type,
-      vote_type
+      vote_type,
+      caption
     )
     VALUES (
       $1,
@@ -447,7 +448,8 @@ if (
       $4,
       $5,
       $6,
-      $7
+      $7,
+      $8
     )
     RETURNING *
     `,
@@ -458,7 +460,8 @@ if (
       state.photoFileId,
       "photo",
       state.pollType,
-      state.voteType
+      state.voteType,
+      text
     ]
   );
 
