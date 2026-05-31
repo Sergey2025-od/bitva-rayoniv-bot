@@ -415,21 +415,26 @@ if (
       leaderboard +=
         `\n💸 1 грн = 1 голос`;
 
-      leaderboard +=
-        `\n\n👇 Голосуйте через бота`;
-
-      leaderboard +=
-        `\nhttps://t.me/bitva_rayoniv_bot?start=vote`;
-
       //
       // UPDATE POST
       //
-      await bot.telegram.editMessageText(
-        process.env.CHANNEL_ID,
-        Number(poll.message_id),
-        null,
-        leaderboard
-      );
+      const replyMarkup1 = poll.button_removed
+        ? { inline_keyboard: [] }
+        : { inline_keyboard: [[{ text: "🗳 ПРОГОЛОСУВАТИ", url: "https://t.me/bitva_rayoniv_bot?start=vote" }]] };
+
+      try {
+        if (poll.message_type === "photo") {
+          await bot.telegram.editMessageCaption(
+            process.env.CHANNEL_ID, Number(poll.message_id), null, leaderboard, { reply_markup: replyMarkup1 }
+          );
+        } else {
+          await bot.telegram.editMessageText(
+            process.env.CHANNEL_ID, Number(poll.message_id), null, leaderboard, { reply_markup: replyMarkup1 }
+          );
+        }
+      } catch (e) {
+        if (!e.message?.includes("message is not modified")) throw e;
+      }
 
       console.log(
         "✅ LEADERBOARD UPDATED"
@@ -498,23 +503,23 @@ async function updateChannelLeaderboard(bot, pollId) {
     }
 
     leaderboard += `\n💸 1 грн = 1 голос`;
-    leaderboard += `\n\n👇 Голосуйте через бота`;
-    leaderboard += `\nhttps://t.me/bitva_rayoniv_bot?start=vote`;
 
-    if (poll.message_type === "photo") {
-      await bot.telegram.editMessageCaption(
-        process.env.CHANNEL_ID,
-        Number(poll.message_id),
-        null,
-        leaderboard
-      );
-    } else {
-      await bot.telegram.editMessageText(
-        process.env.CHANNEL_ID,
-        Number(poll.message_id),
-        null,
-        leaderboard
-      );
+    const replyMarkup2 = poll.button_removed
+      ? { inline_keyboard: [] }
+      : { inline_keyboard: [[{ text: "🗳 ПРОГОЛОСУВАТИ", url: "https://t.me/bitva_rayoniv_bot?start=vote" }]] };
+
+    try {
+      if (poll.message_type === "photo") {
+        await bot.telegram.editMessageCaption(
+          process.env.CHANNEL_ID, Number(poll.message_id), null, leaderboard, { reply_markup: replyMarkup2 }
+        );
+      } else {
+        await bot.telegram.editMessageText(
+          process.env.CHANNEL_ID, Number(poll.message_id), null, leaderboard, { reply_markup: replyMarkup2 }
+        );
+      }
+    } catch (e) {
+      if (!e.message?.includes("message is not modified")) throw e;
     }
 
     console.log("✅ LEADERBOARD UPDATED (pending code)");
