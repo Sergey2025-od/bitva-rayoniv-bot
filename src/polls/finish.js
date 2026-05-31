@@ -1,5 +1,5 @@
 const pool = require("../database/db");
-const { buildFinishText, editPost } = require("./timer");
+const { buildFinishText, editPost, buildSummaryPost } = require("./timer");
 
 module.exports = (bot) => {
 
@@ -30,6 +30,10 @@ module.exports = (bot) => {
       const text = await buildFinishText(poll);
 
       await editPost(bot, poll, text, []); // inline_keyboard: [] — кнопка прибрана
+
+      // Окремий новий пост з підсумком
+      const summaryText = await buildSummaryPost(poll);
+      await bot.telegram.sendMessage(process.env.CHANNEL_ID, summaryText);
 
       await ctx.reply("🏁 Голосування завершено");
 
