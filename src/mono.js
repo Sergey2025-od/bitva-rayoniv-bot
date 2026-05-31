@@ -2,7 +2,7 @@ const axios = require("axios");
 
 const pool = require("./database/db");
 
-let lastTransactionTime = 0;
+let lastTransactionTime = Math.floor(Date.now() / 1000) - 300; // стартуємо з 5 хв назад, не з нуля
 
 async function checkMonobank(bot) {
 
@@ -74,6 +74,15 @@ console.log(
           ""
         )
         .toLowerCase();
+
+      // Пропускаємо якщо немає активного голосування
+      const activePollCheck = await pool.query(
+        `SELECT id FROM polls WHERE is_active = true LIMIT 1`
+      );
+      if (!activePollCheck.rows[0]) {
+        console.log("⏭ No active poll, skipping transaction");
+        continue;
+      }
 
       console.log(
         "💬 TX TEXT:",
