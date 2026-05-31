@@ -66,3 +66,93 @@ async function checkMonobank(bot) {
           } else if (pending.district) {
             await pool.query(
               `INSERT INTO votes (user_id, username, district, amount, status, poll_id)
+               VALUES ($1, 'mono', $2, $3, 'approved', $4)`,
+              [pending.user_id, pending.district, amount, pending.poll_id]
+            );
+            console.log(`✅ PENDING CODE vote: district ${pending.district} +${amount}`);
+          }
+
+          await pool.query(`DELETE FROM pending_payments WHERE code = $1`, [code]);
+          await updateLeaderboard(bot);
+          continue;
+        }
+      }
+
+      //
+      // CUSTOM POLL
+      //
+      const customPollResult = await pool.query(`
+        SELECT * FROM polls WHERE is_active = true ORDER BY id DESC LIMIT 1
+      `);
+      const customPoll = customPollResult.rows[0];
+
+      if (customPoll && customPoll.poll_type === "custom") {
+        const optionsResult = await pool.query(
+          `SELECT * FROM poll_options WHERE poll_id = $1`,
+          [customPoll.id]
+        );
+
+        let matchedOption = null;
+        for (const option of optionsResult.rows) {
+          if (text.includes(option.title.toLowerCase())) {
+            matchedOption = option;
+            break;
+          }
+        }
+
+        if (matchedOption) {
+          const amount = Math.floor(tx.amount / 100);
+          await pool.query(
+            `UPDATE poll_options SET votes = votes + $1 WHERE id = $2`,
+            [amount, matchedOption.id]
+          );
+          console.log(`✅ CUSTOM VOTE: ${matchedOption.title} +${amount}`);
+          await updateLeaderboard(bot);
+          continue;
+        }
+      }
+
+      //
+      // DISTRICT MATCH
+      //
+      let districtCode = null;
+
+      if (text.includes("черем") || text.includes("черьому")) districtCode = "cheremushki";
+      if (text.includes("молд")) districtCode = "moldovanka";
+      if (text.includes("арк")) districtCode = "arkadia";
+      if (text.includes("таір") || text.includes("таир") || text.includes("лиман") || text.includes("сав")) districtCode = "tairchik";
+      if (text.includes("центр")) districtCode = "center";
+      if (text.includes("слобод")) districtCode = "slobodka";
+      if (text.includes("перес")) districtCode = "peresyp";
+      if (text.includes("поскот")) districtCode = "poskot";
+      if (text.includes("аванг") || text.includes("7 км") || text.includes("ленпас")) districtCode = "avangard";
+      if (text.includes("крива") || text.includes("усат") || text.includes("неруб")) districtCode = "krivaya";
+      if (text.includes("холод") || text.includes("дачн")) districtCode = "holodka";
+
+      if (!districtCode) {
+        console.log("❌ DISTRICT NOT FOUND");
+        continue;
+      }
+
+      const amount = Math.floor(tx.amount / 100);
+      console.log(`💸 ${districtCode}: ${amount}`);
+
+      await pool.query(
+        `INSERT INTO votes (user_id, username, district, amount, status)
+         VALUES ($1, $2, $3, $4, 'approved')`,
+        ["mono", "mono", districtCode, amount]
+      );
+
+      await updateLeaderboard(bot);
+      console.log("✅ LEADERBOARD UPDATED");
+    }
+
+  } catch (error) {
+    console.log("❌ MONO ERROR");
+    console.log(error.response?.data || error.message);
+  }
+}
+
+module.exports = {
+  checkMonobank,
+};
