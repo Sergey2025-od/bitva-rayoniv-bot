@@ -1,23 +1,27 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-
 const pool = require("./database/db");
 
+const { updateLeaderboard } = require("./polls/leaderboard");
+
 const app = express();
+
+// ─────────────────────────────────────────────
+// Health check
+// ─────────────────────────────────────────────
 app.get("/", (req, res) => {
   res.status(200).send("Bot is alive");
 });
 
 app.use(bodyParser.json());
 
+// ─────────────────────────────────────────────
+// Mono Webhook
+// ─────────────────────────────────────────────
 app.post("/mono-webhook", async (req, res) => {
-
   try {
-
     console.log("🔥 MONO WEBHOOK:");
-    console.log(
-  JSON.stringify(req.body, null, 2)
-);
+    console.log(JSON.stringify(req.body, null, 2));
 
     const statementItem = req.body?.data?.statementItem;
 
@@ -25,155 +29,175 @@ app.post("/mono-webhook", async (req, res) => {
       return res.sendStatus(200);
     }
 
-    //
-    // COMMENT
-    //
-    const comment =
-      statementItem.comment || "";
+    // Тільки вхідні платежі (amount > 0)
+    if (statementItem.amount <= 0) {
+      return res.sendStatus(200);
+    }
 
-    //
-    // AMOUNT
-    //
-    const amount =
-      Math.floor(statementItem.amount / 100);
+    const comment = (statementItem.comment || "").trim();
+    const amount = Math.floor(statementItem.amount / 100);
 
-    //
-    // DISTRICT
-    //
-    const districtCode =
-      comment.toLowerCase().trim();
+    console.log(`💬 Коментар: "${comment}", сума: ${amount} грн`);
 
-    //
-    // FIND DISTRICT
-    //
-    const districtResult = await pool.query(
-      `
+    // ══════════════════════════════════════════
+    // КРОК 1: Шукаємо pending_payment по коду з коментаря
+    // ══════════════════════════════════════════
+    const pendingResult = await pool.query(`
       SELECT *
-      FROM districts
+      FROM pending_payments
       WHERE code = $1
+        AND expires_at > NOW()
       LIMIT 1
-      `,
-      [districtCode]
-    );
+    `, [comment]);
 
-    const district = districtResult.rows[0];
+    const pending = pendingResult.rows[0];
 
-    if (!district) {
-      console.log("❌ DISTRICT NOT FOUND");
+    if (pending) {
+      console.log("✅ Знайдено pending_payment:", pending);
+
+      // Перевіряємо активне голосування
+      const pollResult = await pool.query(`
+        SELECT * FROM polls
+        WHERE id = $1
+        LIMIT 1
+      `, [pending.poll_id]);
+
+      const poll = pollResult.rows[0];
+
+      if (!poll) {
+        console.log("❌ Poll не знайдено для pending_payment");
+        await pool.query(`DELETE FROM pending_payments WHERE code = $1`, [comment]);
+        return res.sendStatus(200);
+      }
+
+      if (pending.option_id) {
+        // ── КАСТОМНИЙ ВАРІАНТ ──
+        await pool.query(`
+          UPDATE poll_options
+          SET votes = votes + $1
+          WHERE id = $2
+        `, [amount, pending.option_id]);
+
+        console.log(`✅ CUSTOM AUTO VOTE: option ${pending.option_id} +${amount}`);
+
+      } else {
+        // ── РАЙОН ──
+        await pool.query(`
+          INSERT INTO votes (user_id, username, district, amount, status, poll_id)
+          VALUES ($1, $2, $3, $4, 'approved', $5)
+        `, [
+          pending.user_id,
+          "mono_auto",
+          pending.district,
+          amount,
+          pending.poll_id,
+        ]);
+
+        console.log(`✅ DISTRICT AUTO VOTE: ${pending.district} +${amount} (user ${pending.user_id})`);
+      }
+
+      // Видаляємо використаний код
+      await pool.query(`DELETE FROM pending_payments WHERE code = $1`, [comment]);
+
+      // Оновлюємо пост у каналі
+      try {
+        const { Telegraf } = require("telegraf");
+        const bot = new Telegraf(process.env.BOT_TOKEN);
+        await updateLeaderboard(bot);
+      } catch (e) {
+        console.log("⚠️ Leaderboard update error:", e.message);
+      }
+
       return res.sendStatus(200);
     }
 
-    //
-    // SAVE VOTE
-    //
-    await pool.query(
-      `
-      INSERT INTO votes (
-        user_id,
-        username,
-        district,
-        amount,
-        status
-      )
-      VALUES ($1, $2, $3, $4, 'approved')
-      `,
-      [
-        "mono",
-        "mono",
-        district.code,
-        amount,
-      ]
-    );
+    // ══════════════════════════════════════════
+    // КРОК 2: Коду не знайдено — fallback по ключовим словам (район)
+    // ══════════════════════════════════════════
+    console.log("⚠️ Pending не знайдено, пробуємо ключові слова...");
 
-    //
-    // ACTIVE POLL
-    //
-    const pollResult = await pool.query(`
-      SELECT *
-      FROM polls
-      WHERE is_active = true
-      ORDER BY id DESC
-      LIMIT 1
-    `);
+    const text = comment.toLowerCase();
+    let districtCode = matchDistrictByKeyword(text);
 
-    const poll = pollResult.rows[0];
+    if (districtCode) {
+      console.log(`🔍 Знайдено район по ключовому слову: ${districtCode}`);
 
-    if (!poll) {
+      const pollResult = await pool.query(`
+        SELECT * FROM polls
+        WHERE is_active = true
+        ORDER BY id DESC
+        LIMIT 1
+      `);
+
+      const poll = pollResult.rows[0];
+
+      if (poll && poll.poll_type !== "custom") {
+        await pool.query(`
+          INSERT INTO votes (user_id, username, district, amount, status, poll_id)
+          VALUES ($1, $2, $3, $4, 'approved', $5)
+        `, ["mono_keyword", "mono_keyword", districtCode, amount, poll.id]);
+
+        console.log(`✅ KEYWORD VOTE: ${districtCode} +${amount}`);
+
+        try {
+          const { Telegraf } = require("telegraf");
+          const bot = new Telegraf(process.env.BOT_TOKEN);
+          await updateLeaderboard(bot);
+        } catch (e) {
+          console.log("⚠️ Leaderboard update error:", e.message);
+        }
+      }
+
       return res.sendStatus(200);
     }
 
-    //
-    // TOTALS
-    //
-    const totalsResult = await pool.query(`
-      SELECT
-        district,
-        SUM(amount) as total
-      FROM votes
-      WHERE status = 'approved'
-      GROUP BY district
-    `);
+    // ══════════════════════════════════════════
+    // КРОК 3: Нічого не розпізнано — логуємо
+    // ══════════════════════════════════════════
+    console.log(`❌ Платіж ${amount} грн не розпізнано. Коментар: "${comment}"`);
+    // Нічого не робимо — адмін може додати вручну через /admin
 
-    //
-    // DISTRICTS
-    //
-    const districtsResult = await pool.query(`
-      SELECT *
-      FROM districts
-      WHERE active = true
-      ORDER BY id
-    `);
-
-    //
-    // BUILD TEXT
-    //
-    let text = `🏆 ${poll.title}\n\n`;
-
-    for (const district of districtsResult.rows) {
-
-      const totalRow = totalsResult.rows.find(
-        (r) => r.district === district.code
-      );
-
-      const total = totalRow
-        ? totalRow.total
-        : 0;
-
-      text +=
-        `${district.emoji} ` +
-        `${district.name} — ${total}\n`;
-    }
-
-    text += `\n💸 1 грн = 1 голос`;
-    text += `\n\n👇 Голосуйте через бота`;
-    text += `\n@bitva_rayoniv_bot`;
-
-    //
-    // UPDATE POST
-    //
-    const { Telegraf } = require("telegraf");
-
-    const bot = new Telegraf(
-      process.env.BOT_TOKEN
-    );
-
-    await bot.telegram.editMessageCaption(
-      process.env.CHANNEL_ID,
-      Number(poll.message_id),
-      null,
-      text
-    );
-
-    console.log("✅ POST UPDATED");
-
-    res.sendStatus(200);
+    return res.sendStatus(200);
 
   } catch (error) {
-
-    console.log(error);
-
+    console.log("❌ WEBHOOK ERROR:", error);
     res.sendStatus(500);
   }
 });
+
+// ─────────────────────────────────────────────
+// Розпізнавання району по ключовим словам
+// ─────────────────────────────────────────────
+function matchDistrictByKeyword(text) {
+  if (text.includes("черем") || text.includes("черьому")) return "cheremushki";
+  if (text.includes("молд"))                                return "moldovanka";
+  if (text.includes("арк"))                                  return "arkadia";
+  if (
+    text.includes("таір") ||
+    text.includes("таир") ||
+    text.includes("лиман") ||
+    text.includes("сав")
+  )                                                          return "tairchik";
+  if (text.includes("центр"))                               return "center";
+  if (text.includes("слобод"))                              return "slobodka";
+  if (text.includes("перес"))                               return "peresyp";
+  if (text.includes("поскот"))                              return "poskot";
+  if (
+    text.includes("аванг") ||
+    text.includes("7 км") ||
+    text.includes("ленпас")
+  )                                                          return "avangard";
+  if (
+    text.includes("крива") ||
+    text.includes("усат") ||
+    text.includes("неруб")
+  )                                                          return "krivaya";
+  if (
+    text.includes("холод") ||
+    text.includes("дачн")
+  )                                                          return "holodka";
+
+  return null;
+}
 
 module.exports = app;
