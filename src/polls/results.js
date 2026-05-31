@@ -98,26 +98,32 @@ async function buildResultsText(poll) {
 // Зі старого поста видаляє кнопку голосування.
 // ─────────────────────────────────────────────
 async function publishResults(bot, poll) {
-  // 1. Прибираємо кнопку "Проголосувати" зі старого поста
+  // 1. Видаляємо старий пост і надсилаємо новий без кнопки
   if (poll.message_id) {
     const msgId = Number(poll.message_id);
     const channelId = process.env.CHANNEL_ID;
 
-    console.log(`🔧 Removing button from message_id=${msgId}, type=${poll.message_type}, channel=${channelId}`);
+    console.log(`🔧 Deleting old post message_id=${msgId}`);
 
     try {
-      if (poll.message_type === "photo") {
-        // Фото-пост: editMessageCaption прибирає кнопку і замінює текст
-        await bot.telegram.editMessageCaption(
+      if (poll.message_type === "photo" && poll.photo_file_id) {
+        // Видаляємо старий фото-пост
+        await bot.telegram.deleteMessage(channelId, msgId);
+        console.log("✅ Old photo post deleted");
+
+        // Надсилаємо те саме фото, але без кнопки і з позначкою "завершено"
+        const finishedCaption = (poll.caption || poll.title)
+          .replace(/⏱️ Залишилось:.*$/s, "")
+          .trimEnd() + "\n\n🏁 Голосування завершено";
+
+        await bot.telegram.sendPhoto(
           channelId,
-          msgId,
-          null,
-          `🏁 ${poll.title}\n\nГолосування завершено. Результати у наступному повідомленні 👇`,
-          { reply_markup: { inline_keyboard: [] } }
+          poll.photo_file_id,
+          { caption: finishedCaption }
         );
-        console.log("✅ Vote button removed from photo post");
+        console.log("✅ New photo post sent without button");
       } else {
-        // Текстовий пост: editMessageReplyMarkup
+        // Для текстового поста — просто прибираємо кнопку
         await bot.telegram.editMessageReplyMarkup(
           channelId,
           msgId,
@@ -127,20 +133,7 @@ async function publishResults(bot, poll) {
         console.log("✅ Vote button removed from text post");
       }
     } catch (err) {
-      console.log("⚠️ First attempt failed:", err.message);
-      // Запасний варіант — спробувати editMessageReplyMarkup незалежно від типу
-      try {
-        await bot.telegram.editMessageReplyMarkup(
-          channelId,
-          msgId,
-          null,
-          { inline_keyboard: [] }
-        );
-        console.log("✅ Vote button removed (fallback)");
-      } catch (err2) {
-        console.log("❌ Both attempts failed:", err2.message);
-        console.log("❌ Check: is bot an admin in channel with 'Edit messages' permission?");
-      }
+      console.log("❌ Could not remove button:", err.message);
     }
   }
 
