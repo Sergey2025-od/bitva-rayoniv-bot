@@ -102,12 +102,17 @@ async function publishResults(bot, poll) {
   if (poll.message_id) {
     try {
       if (poll.message_type === "photo") {
-        await bot.telegram.editMessageReplyMarkup(
+        // Для фото-повідомлень editMessageReplyMarkup не працює —
+        // потрібно editMessageCaption зі збереженням тексту і порожнім reply_markup
+        // Для фото: оновлюємо caption на "🏁 Голосування завершено" і прибираємо кнопку
+        await bot.telegram.editMessageCaption(
           process.env.CHANNEL_ID,
           Number(poll.message_id),
           null,
-          { inline_keyboard: [] }
+          `🏁 ${poll.title}\n\nГолосування завершено. Результати у наступному повідомленні 👇`,
+          { reply_markup: { inline_keyboard: [] } }
         );
+        console.log("✅ Vote button removed from photo post");
       } else {
         await bot.telegram.editMessageReplyMarkup(
           process.env.CHANNEL_ID,
@@ -115,8 +120,8 @@ async function publishResults(bot, poll) {
           null,
           { inline_keyboard: [] }
         );
+        console.log("✅ Vote button removed from text post");
       }
-      console.log("✅ Vote button removed from old post");
     } catch (err) {
       console.log("⚠️ Could not remove vote button:", err.message);
     }
